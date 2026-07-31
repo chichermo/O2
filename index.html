@@ -947,6 +947,13 @@
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Defaults; config.js (optional) overschrijft met echte Chill Outs credentials
+    window.__O2_SUPABASE__ = window.__O2_SUPABASE__ || { url: '', anonKey: '' };
+  </script>
+  <script src="config.js"></script>
+  <script src="js/o2-db.js"></script>
   <script>
     const STORAGE_KEY = 'o2_incidenten';
 
@@ -1118,6 +1125,7 @@
     }
 
     function getOpgeslagenIncidenten() {
+      if (window.O2DB) return window.O2DB.getAll();
       try {
         return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       } catch {
@@ -1125,10 +1133,14 @@
       }
     }
 
-    function saveIncident(incident) {
+    async function saveIncident(incident) {
+      if (window.O2DB) {
+        return window.O2DB.save(incident);
+      }
       const incidenten = getOpgeslagenIncidenten();
       incidenten.push(incident);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(incidenten));
+      return { mode: 'local' };
     }
 
     function countMap(items) {
@@ -1353,7 +1365,7 @@
       if (tabId === 'statistieken') renderStatistieken();
     }
 
-    function genereerVerslag() {
+    async function genereerVerslag() {
       const verslag = document.getElementById('verslag');
       const status = document.getElementById('statusMsg');
 
@@ -1385,9 +1397,17 @@ ${'='.repeat(40)}
 Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
 
       verslag.textContent = tekst;
-      saveIncident(collectIncidentData());
-      status.textContent = 'Verslag gegenereerd en opgeslagen voor statistieken.';
-      status.className = 'status ok';
+      try {
+        const result = await saveIncident(collectIncidentData());
+        const where = result?.mode === 'supabase'
+          ? 'opgeslagen in Supabase (gedeeld).'
+          : 'opgeslagen lokaal in deze browser.';
+        status.textContent = 'Verslag gegenereerd en ' + where;
+        status.className = 'status ok';
+      } catch (err) {
+        status.textContent = 'Verslag getoond, maar opslaan mislukt: ' + (err.message || err);
+        status.className = 'status error';
+      }
     }
 
     document.getElementById('headerDate').textContent = new Date().toLocaleDateString('nl-BE', {
@@ -1455,10 +1475,15 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
-    document.getElementById('wisStatistieken').addEventListener('click', () => {
+    document.getElementById('wisStatistieken').addEventListener('click', async () => {
       if (!confirm('Weet je zeker dat je alle opgeslagen incidenten wilt wissen?')) return;
-      localStorage.removeItem(STORAGE_KEY);
-      renderStatistieken();
+      try {
+        if (window.O2DB) await window.O2DB.clear();
+        else localStorage.removeItem(STORAGE_KEY);
+        renderStatistieken();
+      } catch (err) {
+        alert('Wissen mislukt: ' + (err.message || err));
+      }
     });
 
     document.getElementById('kopieerVerslag').addEventListener('click', async () => {
@@ -1491,7 +1516,18 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       document.getElementById('statusMsg').className = 'status';
     });
 
-    loadLijsten().then(() => addOpvolgingRow());
+    const boot = window.O2DB
+      ? window.O2DB.init()
+      : Promise.resolve({ mode: 'local' });
+
+    boot.then((info) => {
+      const status = document.getElementById('statusMsg');
+      if (info?.mode === 'supabase') {
+        status.textContent = `Supabase verbonden (${info.count} incidenten).`;
+        status.className = 'status ok';
+      }
+      return loadLijsten();
+    }).then(() => addOpvolgingRow());
   </script>
 </body>
 </html>
