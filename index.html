@@ -29,7 +29,7 @@
         <button type="button" class="nav-item" data-tab="formulier" role="tab" aria-selected="false">
           <span class="nav-ico" aria-hidden="true">✎</span> Nieuw incident
         </button>
-        <button type="button" class="nav-item" data-tab="lijsten" role="tab" aria-selected="false">
+        <button type="button" class="nav-item" data-tab="lijsten" role="tab" aria-selected="false" data-admin-only hidden>
           <span class="nav-ico" aria-hidden="true">☰</span> Lijsten &amp; bulk
           <span class="nav-badge">Import</span>
         </button>
@@ -71,7 +71,7 @@
                 <strong>Nieuw incident</strong>
                 <span>Start een volledig verslag met betrokkenen en opvolging.</span>
               </button>
-              <button type="button" class="quick-card" data-tab="lijsten">
+              <button type="button" class="quick-card" data-tab="lijsten" data-admin-only hidden>
                 <strong>Bulk import namen</strong>
                 <span>Plak of upload Excel/CSV — eerst preview, dan bevestigen.</span>
               </button>
@@ -107,14 +107,14 @@
               <span class="card-hint">Aanbevolen volgorde</span>
             </div>
             <div class="grid-2">
-              <div>
-                <p class="hint" style="margin:0 0 0.75rem">1. Importeer namen via <strong>Lijsten &amp; bulk</strong>.</p>
-                <p class="hint" style="margin:0 0 0.75rem">2. Registreer een incident via <strong>Nieuw incident</strong>.</p>
-                <p class="hint" style="margin:0">3. Volg trends op in <strong>Statistieken</strong>.</p>
+              <div id="workflowSteps">
+                <p class="hint" style="margin:0 0 0.75rem" data-admin-only hidden>1. Importeer namen via <strong>Lijsten &amp; bulk</strong>.</p>
+                <p class="hint" style="margin:0 0 0.75rem" data-step-incident>Registreer een incident via <strong>Nieuw incident</strong>.</p>
+                <p class="hint" style="margin:0" data-step-stats>Volg trends op in <strong>Statistieken</strong>.</p>
               </div>
               <div>
                 <p class="hint" style="margin:0 0 0.75rem">Gebruik <strong>Terug naar portalen</strong> links om terug te keren naar Chill-outs / Nablijven / O2.</p>
-                <button type="button" class="btn-primary" data-tab="lijsten">Bulk import openen</button>
+                <button type="button" class="btn-primary" data-tab="lijsten" data-admin-only hidden>Bulk import openen</button>
               </div>
             </div>
           </section>
@@ -377,6 +377,7 @@
     window.__O2_SUPABASE__ = window.__O2_SUPABASE__ || { url: '', anonKey: '' };
   </script>
   <script src="config.js"></script>
+  <script src="js/o2-auth.js"></script>
   <script src="js/o2-db.js"></script>
   <script src="js/o2-import.js"></script>
   <script>
@@ -984,7 +985,43 @@
       }).join('');
     }
 
+    function isO2Admin() {
+      return !!(window.O2Auth && window.O2Auth.isAdmin());
+    }
+
+    function applyAdminUi() {
+      const admin = isO2Admin();
+      document.querySelectorAll('[data-admin-only]').forEach((el) => {
+        el.hidden = !admin;
+      });
+      const incident = document.querySelector('[data-step-incident]');
+      const stats = document.querySelector('[data-step-stats]');
+      if (incident) {
+        incident.textContent = '';
+        incident.append(
+          document.createTextNode(admin ? '2. Registreer een incident via ' : '1. Registreer een incident via ')
+        );
+        const strong = document.createElement('strong');
+        strong.textContent = 'Nieuw incident';
+        incident.append(strong);
+        incident.append(document.createTextNode('.'));
+      }
+      if (stats) {
+        stats.textContent = '';
+        stats.append(
+          document.createTextNode(admin ? '3. Volg trends op in ' : '2. Volg trends op in ')
+        );
+        const strong = document.createElement('strong');
+        strong.textContent = 'Statistieken';
+        stats.append(strong);
+        stats.append(document.createTextNode('.'));
+      }
+    }
+
     function switchTab(tabId) {
+      if (tabId === 'lijsten' && !isO2Admin()) {
+        tabId = 'home';
+      }
       document.querySelectorAll('[data-tab]').forEach((btn) => {
         const active = btn.dataset.tab === tabId;
         btn.classList.toggle('active', active);
@@ -1235,6 +1272,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       : Promise.resolve({ mode: 'local' });
 
     boot.then((info) => {
+      applyAdminUi();
       const status = document.getElementById('statusMsg');
       const mode = document.getElementById('modePill');
       if (info?.mode === 'supabase') {
@@ -1255,6 +1293,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     }).then(() => {
       addOpvolgingRow();
       renderHome();
+      applyAdminUi();
     });
   </script>
 </body>

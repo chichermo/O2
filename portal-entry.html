@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070f1c">
+  <title>O2 · Portal sessie</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #070f1c;
+      color: #e8eef8;
+      font-family: Outfit, system-ui, sans-serif;
+    }
+    p { opacity: 0.75; font-size: 0.95rem; }
+    a { color: #9ec5ff; }
+  </style>
+</head>
+<body>
+  <p id="msg">Sessie overnemen…</p>
+  <script src="config.js"></script>
+  <script src="js/o2-auth.js"></script>
+  <script>
+    (async function () {
+      const msg = document.getElementById('msg');
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token') || '';
+      const user = params.get('user') || '';
+      const session = await window.O2Auth.acceptPortalToken(token, user);
+      if (!session) {
+        msg.innerHTML =
+          'Ongeldige of verlopen portal-link. <a href="https://chillouts.vercel.app/portals">Terug naar portalen</a>';
+        return;
+      }
+      msg.textContent = 'Welkom — O2 openen…';
+      location.replace('./');
+    })();
+  </script>
+</body>
+</html>
