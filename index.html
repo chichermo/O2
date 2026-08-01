@@ -1057,6 +1057,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
           : 'opgeslagen lokaal in deze browser.';
         status.textContent = 'Verslag gegenereerd en ' + where;
         status.className = 'status ok';
+        renderHome();
       } catch (err) {
         status.textContent = 'Verslag getoond, maar opslaan mislukt: ' + (err.message || err);
         status.className = 'status error';
