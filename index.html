@@ -3,839 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0a1628">
+  <meta name="theme-color" content="#070f1c">
   <title>O2 · Incident met Impact</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --font-sans: "Outfit", system-ui, sans-serif;
-
-      --bg-base: #0a1628;
-      --bg-mesh-1: rgba(194, 224, 252, 0.14);
-      --bg-mesh-2: rgba(94, 196, 184, 0.07);
-      --bg-mesh-3: rgba(110, 150, 210, 0.08);
-
-      --surface-glass: rgba(10, 22, 40, 0.82);
-      --surface-card: rgba(16, 32, 56, 0.72);
-      --surface-card-hover: rgba(22, 42, 72, 0.88);
-      --surface-inset: rgba(0, 8, 20, 0.45);
-
-      --border-subtle: rgba(194, 224, 252, 0.08);
-      --border-default: rgba(194, 224, 252, 0.14);
-      --border-strong: rgba(194, 224, 252, 0.24);
-
-      --text-primary: #e8f2fc;
-      --text-secondary: rgba(232, 242, 252, 0.82);
-      --text-muted: rgba(232, 242, 252, 0.58);
-      --text-faint: rgba(232, 242, 252, 0.4);
-
-      /* Element O2 ice blue — identidad propia */
-      --accent: #c2e0fc;
-      --accent-deep: #7eb8e8;
-      --accent-hover: #d6ebfd;
-      --accent-muted: rgba(194, 224, 252, 0.14);
-      --accent-glow: rgba(126, 184, 232, 0.35);
-      --accent-ink: #0a1628;
-
-      --teal: #5ec4b8;
-      --teal-muted: rgba(94, 196, 184, 0.16);
-      --coral: #f07178;
-      --coral-muted: rgba(240, 113, 120, 0.16);
-      --amber: #e8b86d;
-      --amber-muted: rgba(232, 184, 109, 0.16);
-
-      --radius-sm: 0.5rem;
-      --radius-md: 0.75rem;
-      --radius-lg: 1rem;
-      --radius-xl: 1.25rem;
-      --radius-2xl: 1.5rem;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: var(--font-sans);
-      background: var(--bg-base);
-      color: var(--text-primary);
-      line-height: 1.55;
-      -webkit-font-smoothing: antialiased;
-      min-height: 100vh;
-    }
-
-    .app-page {
-      min-height: 100vh;
-      position: relative;
-      isolation: isolate;
-      background:
-        radial-gradient(ellipse 100% 70% at 50% -15%, var(--bg-mesh-1), transparent 55%),
-        radial-gradient(ellipse 55% 45% at 100% 25%, var(--bg-mesh-2), transparent 50%),
-        radial-gradient(ellipse 45% 40% at 0% 85%, var(--bg-mesh-3), transparent 45%),
-        var(--bg-base);
-    }
-
-    .app-page::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.4;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-    }
-
-    .app-page > * { position: relative; z-index: 1; }
-
-    /* ── Header ── */
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      background: var(--surface-glass);
-      backdrop-filter: blur(20px) saturate(1.15);
-      -webkit-backdrop-filter: blur(20px) saturate(1.15);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .site-header-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1rem 1.25rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1rem 1.5rem;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      min-width: 0;
-    }
-
-    .brand-mark {
-      width: 2.75rem;
-      height: 2.75rem;
-      border-radius: var(--radius-lg);
-      background: linear-gradient(145deg, var(--accent) 0%, var(--accent-deep) 100%);
-      color: var(--accent-ink);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 0.95rem;
-      letter-spacing: -0.03em;
-      box-shadow: 0 4px 18px var(--accent-glow), 0 1px 0 rgba(255, 255, 255, 0.35) inset;
-      flex-shrink: 0;
-    }
-
-    .brand-text { min-width: 0; }
-
-    .brand-eyebrow {
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--accent-deep);
-      margin-bottom: 0.15rem;
-    }
-
-    .brand-title {
-      font-size: clamp(1.15rem, 2.5vw, 1.45rem);
-      font-weight: 750;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
-      color: var(--text-primary);
-    }
-
-    .brand-sub {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-top: 0.15rem;
-    }
-
-    .header-meta {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .time-pill {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--surface-inset);
-      border: 1px solid var(--border-subtle);
-      border-radius: 999px;
-      padding: 0.35rem 0.75rem;
-    }
-
-    /* ── Shell ── */
-    .page-shell {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1.5rem 1.25rem 3.5rem;
-    }
-
-    /* ── Tabs ── */
-    .tabs {
-      display: inline-flex;
-      gap: 0.35rem;
-      padding: 0.3rem;
-      background: var(--surface-inset);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      margin-bottom: 1.5rem;
-    }
-
-    .tab {
-      appearance: none;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      font: inherit;
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 0.65rem 1.15rem;
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      transition: color 0.2s, background 0.2s, box-shadow 0.2s;
-    }
-
-    .tab:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); }
-
-    .tab.active {
-      background: linear-gradient(145deg, var(--accent) 0%, var(--accent-deep) 100%);
-      color: var(--accent-ink);
-      box-shadow: 0 2px 12px var(--accent-glow);
-    }
-
-    .tab:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .tab-panel[hidden] { display: none; }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--surface-card);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 24px 48px -28px rgba(0, 0, 0, 0.55);
-      padding: 1.35rem 1.4rem;
-      margin-bottom: 1.1rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 3px;
-      background: linear-gradient(180deg, var(--accent), var(--teal));
-      opacity: 0.85;
-    }
-
-    .card-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 1.15rem;
-      padding-bottom: 0.85rem;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .card h2 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-    }
-
-    .step-badge {
-      display: inline-grid;
-      place-items: center;
-      width: 1.55rem;
-      height: 1.55rem;
-      border-radius: 0.5rem;
-      background: var(--accent-muted);
-      color: var(--accent);
-      font-size: 0.75rem;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    .card-hint {
-      font-size: 0.75rem;
-      color: var(--text-faint);
-      font-weight: 500;
-    }
-
-    /* ── Form ── */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    @media (max-width: 680px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .header-meta { margin-left: 0; width: 100%; }
-      .tabs { width: 100%; }
-      .tab { flex: 1; text-align: center; }
-    }
-
-    label, .field-label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 0.4rem;
-    }
-
-    .hint {
-      font-size: 0.75rem;
-      color: var(--text-faint);
-      margin-top: 0.4rem;
-    }
-
-    input[type="date"],
-    input[type="text"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 0.7rem 0.85rem;
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-md);
-      font: inherit;
-      font-size: 0.92rem;
-      background: var(--surface-inset);
-      color: var(--text-primary);
-      color-scheme: dark;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    textarea {
-      min-height: 110px;
-      resize: vertical;
-    }
-
-    input::placeholder,
-    textarea::placeholder {
-      color: var(--text-faint);
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent-deep);
-      box-shadow: 0 0 0 3px var(--accent-muted);
-    }
-
-    select[multiple] {
-      min-height: 148px;
-      padding: 0.35rem;
-    }
-
-    select[multiple] option {
-      padding: 0.45rem 0.55rem;
-      border-radius: 0.4rem;
-      margin-bottom: 0.15rem;
-    }
-
-    select[multiple] option:checked {
-      background: linear-gradient(var(--accent-muted), var(--accent-muted));
-      color: var(--accent);
-    }
-
-    /* Checkboxes */
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-      margin-top: 0.15rem;
-    }
-
-    .check-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.55rem;
-      padding: 0.55rem 0.85rem;
-      background: var(--surface-inset);
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-weight: 500;
-      font-size: 0.88rem;
-      color: var(--text-secondary);
-      transition: border-color 0.2s, background 0.2s, color 0.2s;
-      user-select: none;
-    }
-
-    .check-pill:has(input:checked) {
-      border-color: var(--accent-deep);
-      background: var(--accent-muted);
-      color: var(--accent);
-    }
-
-    .check-pill input {
-      width: 1rem;
-      height: 1rem;
-      accent-color: var(--accent-deep);
-    }
-
-    /* Tags */
-    .selected-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.45rem;
-      margin-top: 0.75rem;
-      min-height: 1.75rem;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: var(--accent-muted);
-      color: var(--accent);
-      border: 1px solid rgba(194, 224, 252, 0.28);
-      border-radius: 999px;
-      padding: 0.28rem 0.65rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .tag button {
-      border: none;
-      background: transparent;
-      color: var(--accent-deep);
-      cursor: pointer;
-      font-size: 1rem;
-      line-height: 1;
-      padding: 0;
-      opacity: 0.8;
-    }
-
-    .tag button:hover { opacity: 1; }
-
-    /* Buttons */
-    .btn-row, .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-      margin-top: 0.75rem;
-    }
-
-    button {
-      font: inherit;
-      cursor: pointer;
-      border-radius: var(--radius-md);
-      padding: 0.65rem 1.05rem;
-      border: 1px solid transparent;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s, color 0.2s;
-    }
-
-    button:active { transform: scale(0.98); }
-
-    button:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(145deg, var(--accent) 0%, var(--accent-deep) 100%);
-      color: var(--accent-ink);
-      box-shadow: 0 2px 14px var(--accent-glow), 0 1px 0 rgba(255, 255, 255, 0.25) inset;
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(145deg, var(--accent-hover) 0%, var(--accent) 100%);
-      box-shadow: 0 4px 20px var(--accent-glow);
-    }
-
-    .btn-secondary {
-      background: var(--surface-inset);
-      border-color: var(--border-default);
-      color: var(--text-secondary);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-primary);
-      border-color: var(--border-strong);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-muted);
-      border-color: transparent;
-    }
-
-    .btn-ghost:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-primary);
-    }
-
-    .btn-danger {
-      background: var(--coral-muted);
-      border-color: rgba(240, 113, 120, 0.35);
-      color: #ffb4b8;
-    }
-
-    .btn-danger:hover {
-      background: rgba(240, 113, 120, 0.28);
-      color: #fff;
-    }
-
-    .btn-small {
-      padding: 0.4rem 0.75rem;
-      font-size: 0.8rem;
-    }
-
-    /* Status */
-    .status {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin: 0.75rem 0;
-      padding: 0.7rem 0.9rem;
-      border-radius: var(--radius-md);
-      border: 1px solid transparent;
-      display: none;
-    }
-
-    .status:not(:empty) { display: block; }
-
-    .status.ok {
-      color: #9ee8df;
-      background: var(--teal-muted);
-      border-color: rgba(94, 196, 184, 0.35);
-    }
-
-    .status.error {
-      color: #ffb4b8;
-      background: var(--coral-muted);
-      border-color: rgba(240, 113, 120, 0.35);
-    }
-
-    /* Verslag */
-    #verslag {
-      white-space: pre-wrap;
-      background: var(--surface-inset);
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-md);
-      padding: 1.1rem;
-      min-height: 200px;
-      font-family: "Cascadia Code", "Consolas", ui-monospace, monospace;
-      font-size: 0.85rem;
-      line-height: 1.65;
-      color: var(--text-secondary);
-    }
-
-    #verslag:empty::before {
-      content: "Nog geen verslag. Vul het formulier in en klik op genereren.";
-      color: var(--text-faint);
-      font-family: var(--font-sans);
-      font-size: 0.88rem;
-    }
-
-    /* Opvolging */
-    .opvolging-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .opvolging-row {
-      padding: 1rem;
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      background: var(--surface-inset);
-    }
-
-    .opvolging-row-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.85rem;
-      font-size: 0.8rem;
-      font-weight: 650;
-      color: var(--text-muted);
-    }
-
-    .opvolging-row textarea { min-height: 72px; margin-top: 0.85rem; }
-
-    /* Stats */
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .stat-box {
-      background: var(--surface-inset);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1rem 0.85rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stat-box::after {
-      content: "";
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent-deep), var(--teal));
-      opacity: 0.7;
-    }
-
-    .stat-box .number {
-      font-size: 1.7rem;
-      font-weight: 750;
-      color: var(--accent);
-      line-height: 1.15;
-      letter-spacing: -0.03em;
-    }
-
-    .stat-box .label {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-top: 0.3rem;
-      font-weight: 500;
-    }
-
-    .stat-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-
-    .stat-table th,
-    .stat-table td {
-      border: 1px solid var(--border-subtle);
-      padding: 0.55rem 0.7rem;
-      text-align: left;
-    }
-
-    .stat-table th {
-      background: rgba(194, 224, 252, 0.06);
-      font-weight: 650;
-      color: var(--text-secondary);
-      font-size: 0.78rem;
-    }
-
-    .stat-table tbody tr:nth-child(even) {
-      background: rgba(0, 0, 0, 0.15);
-    }
-
-    .empty-stat {
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      padding: 1.75rem 1rem;
-      text-align: center;
-      border: 1px dashed var(--border-default);
-      border-radius: var(--radius-lg);
-      background: rgba(0, 0, 0, 0.18);
-    }
-
-    .empty-stat strong {
-      display: block;
-      color: var(--text-secondary);
-      margin-bottom: 0.25rem;
-      font-weight: 650;
-    }
-
-    .stat-panel-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1rem;
-      align-items: start;
-    }
-
-    .chart-box {
-      background: var(--surface-inset);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 1rem;
-    }
-
-    .chart-title {
-      margin: 0 0 0.85rem;
-      font-size: 0.72rem;
-      font-weight: 650;
-      color: var(--text-faint);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .chart-svg-wrap {
-      display: flex;
-      justify-content: center;
-      overflow-x: auto;
-    }
-
-    .chart-svg-wrap svg {
-      display: block;
-      max-width: 100%;
-      height: auto;
-    }
-
-    .chart-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.45rem 0.9rem;
-      margin-top: 0.85rem;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-    }
-
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .legend-swatch {
-      width: 10px;
-      height: 10px;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
-
-    .donut-center {
-      font-size: 1.1rem;
-      font-weight: 750;
-      fill: var(--text-primary);
-    }
-
-    .donut-label {
-      font-size: 0.7rem;
-      fill: var(--text-muted);
-    }
-
-    .section-subhead {
-      font-size: 0.88rem;
-      font-weight: 650;
-      margin: 1.25rem 0 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    .field-block { margin-top: 1rem; }
-
-    .import-preview {
-      margin-top: 1rem;
-      max-height: 240px;
-      overflow: auto;
-      border: 1px solid var(--border-default);
-      border-radius: var(--radius-md);
-      background: var(--surface-inset);
-    }
-
-    .import-preview table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-
-    .import-preview th,
-    .import-preview td {
-      padding: 0.45rem 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .import-preview th {
-      position: sticky;
-      top: 0;
-      background: rgba(0, 8, 20, 0.85);
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .import-preview td:first-child {
-      width: 2.5rem;
-      color: var(--text-faint);
-    }
-
-    textarea.bulk-paste {
-      width: 100%;
-      min-height: 9rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.82rem;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; }
-      button:active { transform: none; }
-    }
-
-    @media print {
-      body { background: #fff; color: #111; }
-      .no-print, .site-header, .app-page::before { display: none !important; }
-      .app-page { background: #fff; }
-      .card {
-        box-shadow: none;
-        background: #fff;
-        border: 1px solid #ccc;
-        color: #111;
-        break-inside: avoid;
-      }
-      .card::before { display: none; }
-      #verslag {
-        border: none;
-        padding: 0;
-        background: transparent;
-        color: #111;
-        font-family: Georgia, serif;
-      }
-      .page-shell { max-width: none; padding: 0; }
-    }
-  </style>
+  <link rel="stylesheet" href="css/o2.css">
 </head>
 <body>
-  <div class="app-page">
-    <header class="site-header no-print">
-      <div class="site-header-inner">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">O2</div>
-          <div class="brand-text">
-            <p class="brand-eyebrow">Element · Portaal</p>
-            <h1 class="brand-title">Incident met Impact</h1>
-            <p class="brand-sub">Registratie, teamopvolging en statistieken</p>
-          </div>
-        </div>
-        <div class="header-meta">
-          <span class="time-pill" id="headerDate"></span>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Hoofdnavigatie">
+      <div class="sidebar-brand">
+        <div class="brand-mark" aria-hidden="true">O2</div>
+        <div>
+          <div class="brand-eyebrow">Element</div>
+          <div class="brand-title">O2</div>
+          <div class="brand-sub">Incident met impact</div>
         </div>
       </div>
-    </header>
 
-    <main class="page-shell">
-      <nav class="tabs no-print" role="tablist" aria-label="Hoofdnavigatie">
-        <button type="button" class="tab active" data-tab="formulier" role="tab" aria-selected="true">Formulier</button>
-        <button type="button" class="tab" data-tab="lijsten" role="tab" aria-selected="false">Lijsten</button>
-        <button type="button" class="tab" data-tab="statistieken" role="tab" aria-selected="false">Statistieken</button>
+      <nav class="side-nav" role="tablist" aria-label="O2 secties">
+        <button type="button" class="nav-item active" data-tab="home" role="tab" aria-selected="true">
+          <span class="nav-ico" aria-hidden="true">⌂</span> Overzicht
+        </button>
+        <button type="button" class="nav-item" data-tab="formulier" role="tab" aria-selected="false">
+          <span class="nav-ico" aria-hidden="true">✎</span> Nieuw incident
+        </button>
+        <button type="button" class="nav-item" data-tab="lijsten" role="tab" aria-selected="false">
+          <span class="nav-ico" aria-hidden="true">☰</span> Lijsten &amp; bulk
+          <span class="nav-badge">Import</span>
+        </button>
+        <button type="button" class="nav-item" data-tab="statistieken" role="tab" aria-selected="false">
+          <span class="nav-ico" aria-hidden="true">◈</span> Statistieken
+        </button>
       </nav>
 
-      <div id="tabFormulier" class="tab-panel" role="tabpanel">
+      <div class="sidebar-foot no-print">
+        <a href="https://chillouts.vercel.app/portals">← Terug naar portalen</a>
+        <a href="https://chillouts.vercel.app/dashboard">Chill-outs openen</a>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar no-print">
+        <div style="display:flex;align-items:center;gap:0.75rem;min-width:0">
+          <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Menu">Menu</button>
+          <div>
+            <div class="topbar-title" id="topbarTitle">Overzicht</div>
+            <div class="topbar-sub" id="topbarSub">Dashboard O2 · Incidenten met impact</div>
+          </div>
+        </div>
+        <div class="topbar-meta">
+          <span class="mode-pill" id="modePill">…</span>
+          <span class="time-pill" id="headerDate"></span>
+          <a class="btn-secondary btn-small" href="https://chillouts.vercel.app/portals" style="text-decoration:none">Portalen</a>
+        </div>
+      </header>
+
+      <main class="page-shell">
+        <div id="tabHome" class="tab-panel" role="tabpanel">
+          <section class="hero-panel">
+            <div class="hero-kicker">Element · O2</div>
+            <h1>Incidenten met impact, professioneel opgevolgd</h1>
+            <p>Registreer situaties, koppel betrokkenen, plan teamopvolging en bouw gedeelde statistieken op.</p>
+            <div class="quick-grid">
+              <button type="button" class="quick-card" data-tab="formulier">
+                <strong>Nieuw incident</strong>
+                <span>Start een volledig verslag met betrokkenen en opvolging.</span>
+              </button>
+              <button type="button" class="quick-card" data-tab="lijsten">
+                <strong>Bulk import namen</strong>
+                <span>Plak of upload Excel/CSV — eerst preview, dan bevestigen.</span>
+              </button>
+              <button type="button" class="quick-card" data-tab="statistieken">
+                <strong>Statistieken</strong>
+                <span>Bekijk types, frequentie, leerlingen en opvolgingen.</span>
+              </button>
+            </div>
+          </section>
+
+          <div class="kpi-row" id="homeKpis">
+            <div class="stat-box"><div class="number" id="homeKpiIncidenten">0</div><div class="label">Incidenten</div></div>
+            <div class="stat-box"><div class="number" id="homeKpiOpvolgingen">0</div><div class="label">Opvolgingen</div></div>
+            <div class="stat-box"><div class="number" id="homeKpiLeerlingen">0</div><div class="label">Leerlingen in lijst</div></div>
+            <div class="stat-box"><div class="number" id="homeKpiPersoneel">0</div><div class="label">Personeel in lijst</div></div>
+          </div>
+
+          <section class="card">
+            <div class="card-head">
+              <h2>Werkstroom</h2>
+              <span class="card-hint">Aanbevolen volgorde</span>
+            </div>
+            <div class="grid-2">
+              <div>
+                <p class="hint" style="margin:0 0 0.75rem">1. Importeer namen via <strong>Lijsten &amp; bulk</strong>.</p>
+                <p class="hint" style="margin:0 0 0.75rem">2. Registreer een incident via <strong>Nieuw incident</strong>.</p>
+                <p class="hint" style="margin:0">3. Volg trends op in <strong>Statistieken</strong>.</p>
+              </div>
+              <div>
+                <p class="hint" style="margin:0 0 0.75rem">Gebruik <strong>Terug naar portalen</strong> links om terug te keren naar Chill-outs / Nablijven / O2.</p>
+                <button type="button" class="btn-primary" data-tab="lijsten">Bulk import openen</button>
+              </div>
+            </div>
+          </section>
+        </div>
+<div id="tabFormulier" class="tab-panel" role="tabpanel" hidden>
         <form id="incidentForm">
           <section class="card">
             <div class="card-head">
@@ -937,13 +209,15 @@
       <div id="tabLijsten" class="tab-panel no-print" role="tabpanel" hidden>
         <section class="card">
           <div class="card-head">
-            <h2>Lijsten beheren</h2>
-            <span class="card-hint">Bulk &amp; Excel — eerst preview</span>
+            <h2>Bulk import namen</h2>
+            <span class="card-hint">Plakken of Excel — eerst preview, dan bevestigen</span>
           </div>
-          <p class="hint" style="margin-bottom:1rem">
-            Importeer namen voor leerlingen, personeel of team. Eerst preview, daarna bevestigen.
-            Opgeslagen in deze browser (localStorage). Download JSON om <code>lijsten.json</code> in het project te updaten.
-          </p>
+          <div class="import-panel">
+            <div class="import-panel-title">Bulk / Excel import</div>
+            <p class="hint" style="margin-bottom:1rem">
+              Importeer namen voor leerlingen, personeel of team. Eerst preview, daarna bevestigen.
+              Opgeslagen in deze browser. Download JSON om <code>lijsten.json</code> te updaten.
+            </p>
 
           <div class="grid-2">
             <div>
@@ -990,6 +264,7 @@
               <button type="button" class="btn-ghost btn-small" id="lijstCancelPreview">Annuleren</button>
             </div>
             <p class="status" id="lijstImportStatus" role="status"></p>
+          </div>
           </div>
         </section>
 
@@ -1071,7 +346,11 @@
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      </main>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     // Defaults; config.js (optional) overschrijft met echte Chill Outs credentials
@@ -1628,15 +907,54 @@
       );
     }
 
+    function renderHome() {
+      const incidenten = getOpgeslagenIncidenten();
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val);
+      };
+      set('homeKpiIncidenten', incidenten.length);
+      set('homeKpiLeerlingen', state.leerlingen.length);
+      set('homeKpiPersoneel', state.personeel.length);
+      const opv = incidenten.reduce((n, i) => n + ((i.opvolgingen || []).length), 0);
+      set('homeKpiOpvolgingen', opv);
+      const mode = document.getElementById('modePill');
+      if (mode && window.O2DB) {
+        mode.textContent = window.O2DB.isRemote() ? 'Supabase' : 'Lokaal';
+        mode.classList.toggle('online', !!window.O2DB.isRemote());
+      }
+    }
+
     function switchTab(tabId) {
-      document.querySelectorAll('.tab').forEach((btn) => {
+      document.querySelectorAll('[data-tab]').forEach((btn) => {
         const active = btn.dataset.tab === tabId;
         btn.classList.toggle('active', active);
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        if (btn.hasAttribute('aria-selected')) {
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        }
       });
-      document.getElementById('tabFormulier').hidden = tabId !== 'formulier';
-      document.getElementById('tabLijsten').hidden = tabId !== 'lijsten';
-      document.getElementById('tabStatistieken').hidden = tabId !== 'statistieken';
+      const panels = {
+        home: document.getElementById('tabHome'),
+        formulier: document.getElementById('tabFormulier'),
+        lijsten: document.getElementById('tabLijsten'),
+        statistieken: document.getElementById('tabStatistieken')
+      };
+      Object.entries(panels).forEach(([id, el]) => {
+        if (el) el.hidden = id !== tabId;
+      });
+      const titles = {
+        home: ['Overzicht', 'Dashboard O2 · Incidenten met impact'],
+        formulier: ['Nieuw incident', 'Registratie, teamopvolging en verslag'],
+        lijsten: ['Lijsten & bulk import', 'Leerlingen, personeel en team beheren'],
+        statistieken: ['Statistieken', 'Inzicht in incidenten en opvolgingen']
+      };
+      const t = titles[tabId] || titles.home;
+      const titleEl = document.getElementById('topbarTitle');
+      const subEl = document.getElementById('topbarSub');
+      if (titleEl) titleEl.textContent = t[0];
+      if (subEl) subEl.textContent = t[1];
+      document.getElementById('sidebar')?.classList.remove('open');
+      if (tabId === 'home') renderHome();
       if (tabId === 'lijsten') renderLijstenBeheer();
       if (tabId === 'statistieken') renderStatistieken();
     }
@@ -1747,8 +1065,11 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
 
     document.getElementById('genereerVerslag').addEventListener('click', genereerVerslag);
 
-    document.querySelectorAll('.tab').forEach((btn) => {
+    document.querySelectorAll('[data-tab]').forEach((btn) => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+    document.getElementById('mobileNavToggle')?.addEventListener('click', () => {
+      document.getElementById('sidebar')?.classList.toggle('open');
     });
 
     document.getElementById('wisStatistieken').addEventListener('click', async () => {
@@ -1854,12 +1175,24 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
 
     boot.then((info) => {
       const status = document.getElementById('statusMsg');
+      const mode = document.getElementById('modePill');
       if (info?.mode === 'supabase') {
-        status.textContent = `Supabase verbonden (${info.count} incidenten).`;
-        status.className = 'status ok';
+        if (status) {
+          status.textContent = `Supabase verbonden (${info.count} incidenten).`;
+          status.className = 'status ok';
+        }
+        if (mode) {
+          mode.textContent = 'Supabase';
+          mode.classList.add('online');
+        }
+      } else if (mode) {
+        mode.textContent = 'Lokaal';
       }
       return loadLijsten();
-    }).then(() => addOpvolgingRow());
+    }).then(() => {
+      addOpvolgingRow();
+      renderHome();
+    });
   </script>
 </body>
 </html>
