@@ -563,19 +563,26 @@
       document.querySelectorAll('.opvolging-teamlid').forEach(fillTeamSelect);
     }
 
-    function renderNameTable(tbody, names) {
+    function renderNameTable(tbody, names, listKey) {
       if (!tbody) return;
       tbody.innerHTML = '';
-      (names || []).slice(0, 80).forEach((naam, idx) => {
+      const list = names || [];
+      if (!list.length) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${idx + 1}</td><td>${escapeHtml(naam)}</td>`;
+        tr.innerHTML = `<td colspan="3" style="color:var(--text-faint)">Geen namen</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      list.forEach((naam, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(naam)}</td>
+          <td class="lijst-actions">
+            <button type="button" class="btn-ghost btn-small lijst-remove-btn" data-list="${escapeHtml(listKey)}" data-naam="${escapeHtml(naam)}" title="Verwijderen">Verwijder</button>
+          </td>`;
         tbody.appendChild(tr);
       });
-      if ((names || []).length > 80) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="2">… +${names.length - 80} meer</td>`;
-        tbody.appendChild(tr);
-      }
     }
 
     function escapeHtml(s) {
@@ -586,6 +593,29 @@
         .replace(/"/g, '&quot;');
     }
 
+    function removeNameFromLijst(listKey, naam) {
+      if (!['leerlingen', 'personeel', 'team'].includes(listKey) || !naam) return;
+      const current = Array.isArray(state[listKey]) ? state[listKey] : [];
+      if (!current.includes(naam)) return;
+      if (!confirm(`"${naam}" verwijderen uit ${listKey}?`)) return;
+
+      const next = current.filter((n) => n !== naam);
+      if (listKey === 'leerlingen') {
+        state.geselecteerdeLeerlingen.delete(naam);
+        renderTags(document.getElementById('leerlingTags'), state.geselecteerdeLeerlingen, 'leerling');
+      }
+      if (listKey === 'personeel') {
+        state.geselecteerdePersoneel.delete(naam);
+        renderTags(document.getElementById('personeelTags'), state.geselecteerdePersoneel, 'personeel');
+      }
+
+      saveCustomLijsten({
+        leerlingen: listKey === 'leerlingen' ? next : state.leerlingen,
+        personeel: listKey === 'personeel' ? next : state.personeel,
+        team: listKey === 'team' ? next : state.team
+      });
+    }
+
     function renderLijstenBeheer() {
       const hint = document.getElementById('lijstCountsHint');
       if (hint) {
@@ -594,9 +624,9 @@
       const q = (document.getElementById('lijstSearch')?.value || '').trim().toLowerCase();
       const filterNames = (names) =>
         !q ? names || [] : (names || []).filter((n) => String(n).toLowerCase().includes(q));
-      renderNameTable(document.getElementById('lijstViewLeerlingen'), filterNames(state.leerlingen));
-      renderNameTable(document.getElementById('lijstViewPersoneel'), filterNames(state.personeel));
-      renderNameTable(document.getElementById('lijstViewTeam'), filterNames(state.team));
+      renderNameTable(document.getElementById('lijstViewLeerlingen'), filterNames(state.leerlingen), 'leerlingen');
+      renderNameTable(document.getElementById('lijstViewPersoneel'), filterNames(state.personeel), 'personeel');
+      renderNameTable(document.getElementById('lijstViewTeam'), filterNames(state.team), 'team');
     }
 
     let pendingLijstNames = [];
@@ -1233,6 +1263,12 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     document.getElementById('lijstConfirmImport').addEventListener('click', confirmLijstImport);
     document.getElementById('lijstCancelPreview').addEventListener('click', clearLijstPreview);
     document.getElementById('lijstSearch')?.addEventListener('input', () => renderLijstenBeheer());
+
+    document.getElementById('tabLijsten')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('.lijst-remove-btn');
+      if (!btn) return;
+      removeNameFromLijst(btn.dataset.list, btn.dataset.naam);
+    });
 
     document.getElementById('lijstDownloadJson').addEventListener('click', () => {
       const payload = {
