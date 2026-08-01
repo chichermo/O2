@@ -64,7 +64,7 @@
         <div id="tabHome" class="tab-panel" role="tabpanel">
           <section class="hero-panel">
             <div class="hero-kicker">Element · O2</div>
-            <h1>Incidenten met impact, professioneel opgevolgd</h1>
+            <h1>Incidenten met impact</h1>
             <p>Registreer situaties, koppel betrokkenen, plan teamopvolging en bouw gedeelde statistieken op.</p>
             <div class="quick-grid">
               <button type="button" class="quick-card" data-tab="formulier">
@@ -88,6 +88,18 @@
             <div class="stat-box"><div class="number" id="homeKpiLeerlingen">0</div><div class="label">Leerlingen in lijst</div></div>
             <div class="stat-box"><div class="number" id="homeKpiPersoneel">0</div><div class="label">Personeel in lijst</div></div>
           </div>
+
+          <section class="card">
+            <div class="card-head">
+              <h2>Recente incidenten</h2>
+              <span class="card-hint" id="homeRecentHint">Laatste 8</span>
+            </div>
+            <div id="homeRecentList"></div>
+            <div class="btn-row" style="margin-top:0.85rem">
+              <button type="button" class="btn-secondary btn-small" data-tab="formulier">Nieuw incident</button>
+              <button type="button" class="btn-ghost btn-small" data-tab="statistieken">Alle statistieken</button>
+            </div>
+          </section>
 
           <section class="card">
             <div class="card-head">
@@ -167,7 +179,7 @@
                   <button type="button" class="btn-ghost btn-small" id="clearPersoneel">Alles wissen</button>
                 </div>
                 <div class="selected-tags" id="personeelTags"></div>
-                <p class="hint">Namen laden uit lijsten.json</p>
+                <p class="hint">Namen uit Lijsten &amp; bulk.</p>
               </div>
             </div>
           </section>
@@ -277,6 +289,10 @@
             <button type="button" class="btn-secondary btn-small" id="lijstDownloadJson">Download lijsten.json</button>
             <button type="button" class="btn-ghost btn-small" id="lijstResetCustom">Herstel naar bestand</button>
           </div>
+          <div class="field-block" style="margin-top:0">
+            <label for="lijstSearch">Zoeken in huidige lijsten</label>
+            <input type="text" id="lijstSearch" placeholder="Filter op naam…">
+          </div>
           <div class="grid-2" style="margin-top:1rem">
             <div>
               <h3 class="section-subhead" style="margin-top:0">Leerlingen</h3>
@@ -286,6 +302,10 @@
               <h3 class="section-subhead" style="margin-top:0">Personeel</h3>
               <div class="import-preview"><table><tbody id="lijstViewPersoneel"></tbody></table></div>
             </div>
+          </div>
+          <div style="margin-top:1rem">
+            <h3 class="section-subhead" style="margin-top:0">Team (opvolging)</h3>
+            <div class="import-preview"><table><tbody id="lijstViewTeam"></tbody></table></div>
           </div>
         </section>
       </div>
@@ -570,8 +590,12 @@
       if (hint) {
         hint.textContent = `${state.leerlingen.length} leerlingen · ${state.personeel.length} personeel · ${state.team.length} team`;
       }
-      renderNameTable(document.getElementById('lijstViewLeerlingen'), state.leerlingen);
-      renderNameTable(document.getElementById('lijstViewPersoneel'), state.personeel);
+      const q = (document.getElementById('lijstSearch')?.value || '').trim().toLowerCase();
+      const filterNames = (names) =>
+        !q ? names || [] : (names || []).filter((n) => String(n).toLowerCase().includes(q));
+      renderNameTable(document.getElementById('lijstViewLeerlingen'), filterNames(state.leerlingen));
+      renderNameTable(document.getElementById('lijstViewPersoneel'), filterNames(state.personeel));
+      renderNameTable(document.getElementById('lijstViewTeam'), filterNames(state.team));
     }
 
     let pendingLijstNames = [];
@@ -920,9 +944,44 @@
       set('homeKpiOpvolgingen', opv);
       const mode = document.getElementById('modePill');
       if (mode && window.O2DB) {
-        mode.textContent = window.O2DB.isRemote() ? 'Supabase' : 'Lokaal';
+        mode.textContent = window.O2DB.isRemote() ? 'Online' : 'Alleen lokaal';
         mode.classList.toggle('online', !!window.O2DB.isRemote());
+        mode.title = window.O2DB.isRemote()
+          ? 'Gegevens worden gedeeld (cloud)'
+          : 'Gegevens alleen in deze browser';
       }
+
+      const list = document.getElementById('homeRecentList');
+      const hint = document.getElementById('homeRecentHint');
+      if (!list) return;
+      const recent = [...incidenten]
+        .sort((a, b) => String(b.opgeslagenOp || '').localeCompare(String(a.opgeslagenOp || '')))
+        .slice(0, 8);
+      if (hint) hint.textContent = recent.length ? `Laatste ${recent.length}` : 'Nog leeg';
+      if (!recent.length) {
+        list.innerHTML = '<div class="empty-stat"><strong>Nog geen incidenten</strong>Maak een nieuw verslag om hier geschiedenis te zien.</div>';
+        return;
+      }
+      list.innerHTML = recent.map((inc) => {
+        const types = [];
+        if (inc.verbaleAgressie) types.push('Verbaal');
+        if (inc.fysiekeAgressie) types.push('Fysiek');
+        const typeLabel = types.length ? types.join(' + ') : 'Type n.v.t.';
+        const leerlingen = (inc.leerlingen || []).slice(0, 3).join(', ') || '—';
+        const more = (inc.leerlingen || []).length > 3 ? ` +${(inc.leerlingen || []).length - 3}` : '';
+        const opvolg = (inc.opvolgingen || []).length;
+        return `
+          <article class="recent-row">
+            <div class="recent-main">
+              <strong>${escapeHtml(formatDate(inc.datumIncident))}</strong>
+              <span class="recent-type">${escapeHtml(typeLabel)}</span>
+            </div>
+            <div class="recent-meta">
+              <span>${escapeHtml(leerlingen)}${escapeHtml(more)}</span>
+              <span>${opvolg} opvolging${opvolg === 1 ? '' : 'en'}</span>
+            </div>
+          </article>`;
+      }).join('');
     }
 
     function switchTab(tabId) {
@@ -1135,6 +1194,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
 
     document.getElementById('lijstConfirmImport').addEventListener('click', confirmLijstImport);
     document.getElementById('lijstCancelPreview').addEventListener('click', clearLijstPreview);
+    document.getElementById('lijstSearch')?.addEventListener('input', () => renderLijstenBeheer());
 
     document.getElementById('lijstDownloadJson').addEventListener('click', () => {
       const payload = {
@@ -1178,15 +1238,17 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       const mode = document.getElementById('modePill');
       if (info?.mode === 'supabase') {
         if (status) {
-          status.textContent = `Supabase verbonden (${info.count} incidenten).`;
+          status.textContent = `Online verbonden (${info.count} incidenten).`;
           status.className = 'status ok';
         }
         if (mode) {
-          mode.textContent = 'Supabase';
+          mode.textContent = 'Online';
+          mode.title = 'Gegevens worden gedeeld (cloud)';
           mode.classList.add('online');
         }
       } else if (mode) {
-        mode.textContent = 'Lokaal';
+        mode.textContent = 'Alleen lokaal';
+        mode.title = 'Gegevens alleen in deze browser';
       }
       return loadLijsten();
     }).then(() => {

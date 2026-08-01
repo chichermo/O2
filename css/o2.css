@@ -802,6 +802,46 @@ textarea.bulk-paste {
   font-size: 0.82rem;
 }
 
+.recent-row {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-inset);
+  margin-bottom: 0.55rem;
+}
+
+.recent-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.recent-main strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.recent-type {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--accent);
+  background: var(--accent-muted);
+  border: 1px solid rgba(194, 224, 252, 0.25);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.recent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .mobile-nav-toggle {
   display: none;
   appearance: none;
