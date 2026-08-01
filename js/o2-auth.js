@@ -51,25 +51,40 @@
     }
   }
 
+  function writeSession(session) {
+    // localStorage zodat admin-sessie blijft na refresh in hetzelfde browserprofiel
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+
+  function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+
   function readSession() {
     try {
-      return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      const raw =
+        sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null';
+      const s = JSON.parse(raw);
+      if (!s || !s.role) return null;
+      // Sessie max 12 uur geldig
+      if (s.at) {
+        const ageMs = Date.now() - new Date(s.at).getTime();
+        if (Number.isFinite(ageMs) && ageMs > 12 * 60 * 60 * 1000) {
+          clearSession();
+          return null;
+        }
+      }
+      return s;
     } catch {
       return null;
     }
   }
 
-  function writeSession(session) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  }
-
-  function clearSession() {
-    sessionStorage.removeItem(SESSION_KEY);
-  }
-
   function isAdmin() {
     const s = readSession();
-    return !!(s && s.role === 'admin');
+    return !!(s && String(s.role).toLowerCase() === 'admin');
   }
 
   function getUsername() {

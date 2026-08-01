@@ -594,6 +594,7 @@
     }
 
     function removeNameFromLijst(listKey, naam) {
+      if (!isO2Admin()) return;
       if (!['leerlingen', 'personeel', 'team'].includes(listKey) || !naam) return;
       const current = Array.isArray(state[listKey]) ? state[listKey] : [];
       if (!current.includes(naam)) return;
@@ -672,6 +673,7 @@
     }
 
     function confirmLijstImport() {
+      if (!isO2Admin()) return;
       if (!pendingLijstNames.length) return;
       const target = document.getElementById('lijstTarget').value;
       const mode = document.getElementById('lijstMode').value;
@@ -1021,9 +1023,18 @@
 
     function applyAdminUi() {
       const admin = isO2Admin();
+      document.body.classList.toggle('o2-is-admin', admin);
       document.querySelectorAll('[data-admin-only]').forEach((el) => {
-        el.hidden = !admin;
+        if (admin) {
+          el.removeAttribute('hidden');
+        } else {
+          el.setAttribute('hidden', '');
+        }
       });
+      const lijstenPanel = document.getElementById('tabLijsten');
+      if (lijstenPanel && !admin && !lijstenPanel.hidden) {
+        lijstenPanel.hidden = true;
+      }
       const incident = document.querySelector('[data-step-incident]');
       const stats = document.querySelector('[data-step-stats]');
       if (incident) {

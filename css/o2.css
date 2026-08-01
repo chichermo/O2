@@ -274,6 +274,12 @@ body {
 
 .tab-panel[hidden] { display: none; }
 
+/* hidden moet display:flex/grid van nav/buttons overschrijven */
+[hidden],
+[data-admin-only][hidden] {
+  display: none !important;
+}
+
 /* Home dashboard */
 .hero-panel {
   position: relative;
