@@ -740,6 +740,48 @@
 
     .field-block { margin-top: 1rem; }
 
+    .import-preview {
+      margin-top: 1rem;
+      max-height: 240px;
+      overflow: auto;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      background: var(--surface-inset);
+    }
+
+    .import-preview table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .import-preview th,
+    .import-preview td {
+      padding: 0.45rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .import-preview th {
+      position: sticky;
+      top: 0;
+      background: rgba(0, 8, 20, 0.85);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .import-preview td:first-child {
+      width: 2.5rem;
+      color: var(--text-faint);
+    }
+
+    textarea.bulk-paste {
+      width: 100%;
+      min-height: 9rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; }
       button:active { transform: none; }
@@ -789,6 +831,7 @@
     <main class="page-shell">
       <nav class="tabs no-print" role="tablist" aria-label="Hoofdnavigatie">
         <button type="button" class="tab active" data-tab="formulier" role="tab" aria-selected="true">Formulier</button>
+        <button type="button" class="tab" data-tab="lijsten" role="tab" aria-selected="false">Lijsten</button>
         <button type="button" class="tab" data-tab="statistieken" role="tab" aria-selected="false">Statistieken</button>
       </nav>
 
@@ -891,6 +934,87 @@
         </form>
       </div>
 
+      <div id="tabLijsten" class="tab-panel no-print" role="tabpanel" hidden>
+        <section class="card">
+          <div class="card-head">
+            <h2>Lijsten beheren</h2>
+            <span class="card-hint">Bulk &amp; Excel — eerst preview</span>
+          </div>
+          <p class="hint" style="margin-bottom:1rem">
+            Importeer namen voor leerlingen, personeel of team. Eerst preview, daarna bevestigen.
+            Opgeslagen in deze browser (localStorage). Download JSON om <code>lijsten.json</code> in het project te updaten.
+          </p>
+
+          <div class="grid-2">
+            <div>
+              <label for="lijstTarget">Doellijst</label>
+              <select id="lijstTarget">
+                <option value="leerlingen">Leerlingen</option>
+                <option value="personeel">Personeel</option>
+                <option value="team">Team (opvolging)</option>
+              </select>
+            </div>
+            <div>
+              <label for="lijstMode">Modus</label>
+              <select id="lijstMode">
+                <option value="merge">Toevoegen (samenvoegen)</option>
+                <option value="replace">Vervangen</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label for="lijstBulkText">Plak namen (één per regel)</label>
+            <textarea id="lijstBulkText" class="bulk-paste" placeholder="Degrendele;Leandro&#10;Geers;Lewis&#10;Lisa Janssens"></textarea>
+            <div class="btn-row" style="margin-top:0.75rem">
+              <button type="button" class="btn-secondary btn-small" id="lijstPreviewPaste">Preview tonen</button>
+              <label class="btn-secondary btn-small" style="cursor:pointer">
+                Excel / CSV
+                <input type="file" id="lijstExcelFile" accept=".xlsx,.xls,.csv" hidden>
+              </label>
+            </div>
+          </div>
+
+          <div id="lijstPreviewWrap" hidden>
+            <h3 class="section-subhead">Preview — <span id="lijstPreviewCount">0</span> namen</h3>
+            <div class="import-preview">
+              <table>
+                <thead>
+                  <tr><th>#</th><th>Naam</th></tr>
+                </thead>
+                <tbody id="lijstPreviewBody"></tbody>
+              </table>
+            </div>
+            <div class="btn-row" style="margin-top:0.85rem">
+              <button type="button" class="btn-primary btn-small" id="lijstConfirmImport">Bevestigen</button>
+              <button type="button" class="btn-ghost btn-small" id="lijstCancelPreview">Annuleren</button>
+            </div>
+            <p class="status" id="lijstImportStatus" role="status"></p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Huidige lijsten</h2>
+            <span class="card-hint" id="lijstCountsHint"></span>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary btn-small" id="lijstDownloadJson">Download lijsten.json</button>
+            <button type="button" class="btn-ghost btn-small" id="lijstResetCustom">Herstel naar bestand</button>
+          </div>
+          <div class="grid-2" style="margin-top:1rem">
+            <div>
+              <h3 class="section-subhead" style="margin-top:0">Leerlingen</h3>
+              <div class="import-preview"><table><tbody id="lijstViewLeerlingen"></tbody></table></div>
+            </div>
+            <div>
+              <h3 class="section-subhead" style="margin-top:0">Personeel</h3>
+              <div class="import-preview"><table><tbody id="lijstViewPersoneel"></tbody></table></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <div id="tabStatistieken" class="tab-panel" role="tabpanel" hidden>
         <section class="card">
           <div class="card-head">
@@ -948,14 +1072,17 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     // Defaults; config.js (optional) overschrijft met echte Chill Outs credentials
     window.__O2_SUPABASE__ = window.__O2_SUPABASE__ || { url: '', anonKey: '' };
   </script>
   <script src="config.js"></script>
   <script src="js/o2-db.js"></script>
+  <script src="js/o2-import.js"></script>
   <script>
     const STORAGE_KEY = 'o2_incidenten';
+    const LIJSTEN_KEY = 'o2_lijsten_custom';
 
     const state = {
       leerlingen: [],
@@ -1075,26 +1202,173 @@
 
     async function loadLijsten() {
       const status = document.getElementById('statusMsg');
+      let base = { leerlingen: [], personeel: [], team: [] };
       try {
         const res = await fetch('lijsten.json');
         if (!res.ok) throw new Error('lijsten.json niet gevonden');
         const data = await res.json();
-        state.leerlingen = data.leerlingen || [];
-        state.personeel = data.personeel || [];
-        state.team = data.team || [];
-        fillSelect(document.getElementById('leerlingSelect'), state.leerlingen);
-        fillSelect(document.getElementById('personeelSelect'), state.personeel);
-        status.textContent = 'Lijsten geladen.';
-        status.className = 'status ok';
+        base = {
+          leerlingen: data.leerlingen || [],
+          personeel: data.personeel || [],
+          team: data.team || []
+        };
+        if (status) {
+          status.textContent = 'Lijsten geladen.';
+          status.className = 'status ok';
+        }
       } catch (err) {
-        status.textContent = 'Kon lijsten.json niet laden. Open via een lokale server of vul het JSON-bestand.';
-        status.className = 'status error';
+        if (status) {
+          status.textContent = 'Kon lijsten.json niet laden. Open via een lokale server of vul het JSON-bestand.';
+          status.className = 'status error';
+        }
         const fallback = ['Naam 1', 'Naam 2', 'Naam 3', 'Naam 4', 'Naam 5'];
-        state.leerlingen = fallback;
-        state.personeel = fallback;
-        state.team = fallback;
-        fillSelect(document.getElementById('leerlingSelect'), fallback);
-        fillSelect(document.getElementById('personeelSelect'), fallback);
+        base = { leerlingen: fallback, personeel: fallback, team: fallback };
+      }
+
+      const custom = readCustomLijsten();
+      state.leerlingen = custom.leerlingen || base.leerlingen;
+      state.personeel = custom.personeel || base.personeel;
+      state.team = custom.team || base.team;
+      state._lijstenBase = base;
+
+      applyLijstenToForm();
+      renderLijstenBeheer();
+    }
+
+    function readCustomLijsten() {
+      try {
+        return JSON.parse(localStorage.getItem(LIJSTEN_KEY) || '{}') || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCustomLijsten(partial) {
+      const next = {
+        leerlingen: partial.leerlingen || state.leerlingen,
+        personeel: partial.personeel || state.personeel,
+        team: partial.team || state.team
+      };
+      localStorage.setItem(LIJSTEN_KEY, JSON.stringify(next));
+      state.leerlingen = next.leerlingen;
+      state.personeel = next.personeel;
+      state.team = next.team;
+      applyLijstenToForm();
+      renderLijstenBeheer();
+    }
+
+    function applyLijstenToForm() {
+      fillSelect(document.getElementById('leerlingSelect'), state.leerlingen);
+      fillSelect(document.getElementById('personeelSelect'), state.personeel);
+      document.querySelectorAll('.opvolging-teamlid').forEach(fillTeamSelect);
+    }
+
+    function renderNameTable(tbody, names) {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      (names || []).slice(0, 80).forEach((naam, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${idx + 1}</td><td>${escapeHtml(naam)}</td>`;
+        tbody.appendChild(tr);
+      });
+      if ((names || []).length > 80) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="2">… +${names.length - 80} meer</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderLijstenBeheer() {
+      const hint = document.getElementById('lijstCountsHint');
+      if (hint) {
+        hint.textContent = `${state.leerlingen.length} leerlingen · ${state.personeel.length} personeel · ${state.team.length} team`;
+      }
+      renderNameTable(document.getElementById('lijstViewLeerlingen'), state.leerlingen);
+      renderNameTable(document.getElementById('lijstViewPersoneel'), state.personeel);
+    }
+
+    let pendingLijstNames = [];
+
+    function showLijstPreview(names) {
+      pendingLijstNames = names || [];
+      const wrap = document.getElementById('lijstPreviewWrap');
+      const body = document.getElementById('lijstPreviewBody');
+      const count = document.getElementById('lijstPreviewCount');
+      const status = document.getElementById('lijstImportStatus');
+      if (!wrap || !body) return;
+      if (!pendingLijstNames.length) {
+        wrap.hidden = true;
+        if (status) {
+          status.textContent = 'Geen geldige namen gevonden.';
+          status.className = 'status error';
+        }
+        return;
+      }
+      wrap.hidden = false;
+      if (count) count.textContent = String(pendingLijstNames.length);
+      if (status) {
+        status.textContent = 'Controleer de preview en bevestig om te importeren.';
+        status.className = 'status ok';
+      }
+      body.innerHTML = '';
+      pendingLijstNames.forEach((naam, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${idx + 1}</td><td>${escapeHtml(naam)}</td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function clearLijstPreview() {
+      pendingLijstNames = [];
+      const wrap = document.getElementById('lijstPreviewWrap');
+      if (wrap) wrap.hidden = true;
+      const status = document.getElementById('lijstImportStatus');
+      if (status) {
+        status.textContent = '';
+        status.className = 'status';
+      }
+    }
+
+    function confirmLijstImport() {
+      if (!pendingLijstNames.length) return;
+      const target = document.getElementById('lijstTarget').value;
+      const mode = document.getElementById('lijstMode').value;
+      const current = Array.isArray(state[target]) ? state[target] : [];
+      let next;
+      if (mode === 'replace') {
+        next = pendingLijstNames.slice();
+      } else {
+        const seen = new Set(current.map((n) => n.toLowerCase()));
+        next = current.slice();
+        pendingLijstNames.forEach((n) => {
+          const key = n.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            next.push(n);
+          }
+        });
+      }
+      const payload = {
+        leerlingen: state.leerlingen,
+        personeel: state.personeel,
+        team: state.team
+      };
+      payload[target] = next;
+      saveCustomLijsten(payload);
+      clearLijstPreview();
+      document.getElementById('lijstBulkText').value = '';
+      const status = document.getElementById('lijstImportStatus');
+      if (status) {
+        status.textContent = `${next.length} namen in “${target}” opgeslagen.`;
+        status.className = 'status ok';
       }
     }
 
@@ -1361,7 +1635,9 @@
         btn.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       document.getElementById('tabFormulier').hidden = tabId !== 'formulier';
+      document.getElementById('tabLijsten').hidden = tabId !== 'lijsten';
       document.getElementById('tabStatistieken').hidden = tabId !== 'statistieken';
+      if (tabId === 'lijsten') renderLijstenBeheer();
       if (tabId === 'statistieken') renderStatistieken();
     }
 
@@ -1502,6 +1778,62 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     document.getElementById('printVerslag').addEventListener('click', () => {
       if (!document.getElementById('verslag').textContent.trim()) genereerVerslag();
       window.print();
+    });
+
+    document.getElementById('lijstPreviewPaste').addEventListener('click', () => {
+      const text = document.getElementById('lijstBulkText').value;
+      const names = window.O2Import
+        ? window.O2Import.parseNameLines(text)
+        : text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      showLijstPreview(names);
+    });
+
+    document.getElementById('lijstExcelFile').addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        if (!window.XLSX) throw new Error('Excel-library niet geladen');
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+        const names = window.O2Import
+          ? window.O2Import.namesFromExcelRows(rows)
+          : rows.map((r) => String(r.Naam || r.Name || r.Voornaam || '').trim()).filter(Boolean);
+        showLijstPreview(names);
+      } catch (err) {
+        const status = document.getElementById('lijstImportStatus');
+        if (status) {
+          status.textContent = err.message || 'Excel lezen mislukt';
+          status.className = 'status error';
+        }
+      } finally {
+        event.target.value = '';
+      }
+    });
+
+    document.getElementById('lijstConfirmImport').addEventListener('click', confirmLijstImport);
+    document.getElementById('lijstCancelPreview').addEventListener('click', clearLijstPreview);
+
+    document.getElementById('lijstDownloadJson').addEventListener('click', () => {
+      const payload = {
+        leerlingen: state.leerlingen,
+        personeel: state.personeel,
+        team: state.team
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lijsten.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('lijstResetCustom').addEventListener('click', async () => {
+      if (!confirm('Aangepaste lijsten wissen en opnieuw laden uit lijsten.json?')) return;
+      localStorage.removeItem(LIJSTEN_KEY);
+      await loadLijsten();
     });
 
     document.getElementById('incidentForm').addEventListener('reset', () => {
