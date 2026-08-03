@@ -507,10 +507,14 @@
         const res = await fetch('lijsten.json');
         if (!res.ok) throw new Error('lijsten.json niet gevonden');
         const data = await res.json();
+        const norm = (arr) =>
+          window.O2Import && window.O2Import.normalizeNameList
+            ? window.O2Import.normalizeNameList(arr)
+            : (arr || []);
         base = {
-          leerlingen: data.leerlingen || [],
-          personeel: data.personeel || [],
-          team: data.team || []
+          leerlingen: norm(data.leerlingen || []),
+          personeel: norm(data.personeel || []),
+          team: norm(data.team || [])
         };
         if (status) {
           status.textContent = 'Lijsten geladen.';
@@ -526,9 +530,13 @@
       }
 
       const custom = readCustomLijsten();
-      state.leerlingen = custom.leerlingen || base.leerlingen;
-      state.personeel = custom.personeel || base.personeel;
-      state.team = custom.team || base.team;
+      const norm = (arr) =>
+        window.O2Import && window.O2Import.normalizeNameList
+          ? window.O2Import.normalizeNameList(arr)
+          : (arr || []);
+      state.leerlingen = norm(custom.leerlingen || base.leerlingen);
+      state.personeel = norm(custom.personeel || base.personeel);
+      state.team = norm(custom.team || base.team);
       state._lijstenBase = base;
 
       applyLijstenToForm();
@@ -544,10 +552,14 @@
     }
 
     function saveCustomLijsten(partial) {
+      const norm = (arr) =>
+        window.O2Import && window.O2Import.normalizeNameList
+          ? window.O2Import.normalizeNameList(arr)
+          : (arr || []);
       const next = {
-        leerlingen: partial.leerlingen || state.leerlingen,
-        personeel: partial.personeel || state.personeel,
-        team: partial.team || state.team
+        leerlingen: norm(partial.leerlingen || state.leerlingen),
+        personeel: norm(partial.personeel || state.personeel),
+        team: norm(partial.team || state.team)
       };
       localStorage.setItem(LIJSTEN_KEY, JSON.stringify(next));
       state.leerlingen = next.leerlingen;
