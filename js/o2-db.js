@@ -26,7 +26,12 @@
       leerlingen: Array.isArray(row.leerlingen) ? row.leerlingen : [],
       personeel: Array.isArray(row.personeel) ? row.personeel : [],
       opvolgingen: Array.isArray(row.opvolgingen) ? row.opvolgingen : [],
-      andereData: row.andere_data || ''
+      andereData: row.andere_data || '',
+      beschrijvingBijlagen: Array.isArray(row.beschrijving_bijlagen)
+        ? row.beschrijving_bijlagen
+        : Array.isArray(row.beschrijvingBijlagen)
+          ? row.beschrijvingBijlagen
+          : []
     };
   }
 
@@ -41,6 +46,7 @@
       personeel: incident.personeel || [],
       opvolgingen: incident.opvolgingen || [],
       andere_data: incident.andereData || '',
+      beschrijving_bijlagen: incident.beschrijvingBijlagen || [],
       opgeslagen_op: incident.opgeslagenOp || new Date().toISOString()
     };
   }

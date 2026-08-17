@@ -151,6 +151,16 @@
       color: var(--text-primary);
     }
 
+    .blue-dot {
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-left: 0.4rem;
+      border-radius: 50%;
+      background: #2563eb;
+      vertical-align: middle;
+    }
+
     .brand-sub {
       font-size: 0.82rem;
       color: var(--text-muted);
@@ -580,6 +590,72 @@
 
     .opvolging-row textarea { min-height: 72px; margin-top: 0.85rem; }
 
+    /* Bijlagen */
+    .file-zone {
+      margin-top: 0.65rem;
+      padding: 0.85rem;
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      background: rgba(0, 8, 20, 0.25);
+    }
+
+    .file-zone-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .file-zone-empty {
+      font-size: 0.82rem;
+      color: var(--text-faint);
+      margin: 0;
+    }
+
+    .file-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--surface-inset);
+    }
+
+    .file-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .file-item-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .file-item-size {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .file-item-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .file-zone-hint { margin-top: 0.35rem; margin-bottom: 0; }
+
+    @media print {
+      .file-item-actions { display: none !important; }
+    }
+
     /* Stats */
     .stat-grid {
       display: grid;
@@ -776,7 +852,7 @@
           <div class="brand-mark" aria-hidden="true">O2</div>
           <div class="brand-text">
             <p class="brand-eyebrow">Element · Portaal</p>
-            <h1 class="brand-title">Incident met Impact</h1>
+            <h1 class="brand-title">Incident met Impact <span class="blue-dot" aria-hidden="true" title="Blauwe stip"></span></h1>
             <p class="brand-sub">Registratie, teamopvolging en statistieken</p>
           </div>
         </div>
@@ -823,6 +899,7 @@
             <div class="field-block">
               <label for="beschrijving">Beschrijving situatie</label>
               <textarea id="beschrijving" name="beschrijving" placeholder="Beschrijf de situatie zo volledig mogelijk…"></textarea>
+              <div id="beschrijvingBijlagen" data-file-zone="beschrijving"></div>
             </div>
           </section>
 
@@ -954,6 +1031,7 @@
   </script>
   <script src="config.js"></script>
   <script src="js/o2-db.js"></script>
+  <script src="js/o2-files.js"></script>
   <script>
     const STORAGE_KEY = 'o2_incidenten';
 
@@ -1035,12 +1113,16 @@
         <div>
           <label for="opvolgingNotities${id}">Wat werd besproken / opmerkingen</label>
           <textarea id="opvolgingNotities${id}" class="opvolging-notities" placeholder="Beschrijf wat er besproken werd…">${notities}</textarea>
+          <div class="opvolging-bijlagen" data-file-zone="opvolging"></div>
         </div>
       `;
       document.getElementById('opvolgingList').appendChild(row);
       const teamSelect = row.querySelector('.opvolging-teamlid');
       fillTeamSelect(teamSelect);
       if (teamlid) teamSelect.value = teamlid;
+      if (window.O2Files) {
+        window.O2Files.mountZone(row.querySelector('[data-file-zone="opvolging"]'));
+      }
     }
 
     function getOpvolgingen() {
@@ -1048,8 +1130,12 @@
         const datum = row.querySelector('.opvolging-datum').value;
         const teamlid = row.querySelector('.opvolging-teamlid').value;
         const notities = row.querySelector('.opvolging-notities').value.trim();
-        return { nr: index + 1, datum, teamlid, notities };
-      }).filter((o) => o.datum || o.teamlid || o.notities);
+        const bijlagenZone = row.querySelector('[data-file-zone="opvolging"]');
+        const bijlagen = window.O2Files && bijlagenZone
+          ? window.O2Files.getZoneFiles(bijlagenZone)
+          : [];
+        return { nr: index + 1, datum, teamlid, notities, bijlagen };
+      }).filter((o) => o.datum || o.teamlid || o.notities || (o.bijlagen && o.bijlagen.length));
     }
 
     function formatOpvolgingen() {
@@ -1059,7 +1145,12 @@
         const datum = formatDate(o.datum);
         const lid = o.teamlid || 'Niet gekoppeld';
         const notities = o.notities || '—';
-        return `${o.nr}. ${datum} – ${lid}\n   ${notities}`;
+        const bijlagen = window.O2Files
+          ? window.O2Files.formatFilesForReport(o.bijlagen)
+          : '';
+        let block = `${o.nr}. ${datum} – ${lid}\n   ${notities}`;
+        if (bijlagen) block += `\n   Bijlagen:\n${bijlagen}`;
+        return block;
       }).join('\n\n');
     }
 
@@ -1110,6 +1201,7 @@
     }
 
     function collectIncidentData() {
+      const beschrijvingZone = document.getElementById('beschrijvingBijlagen');
       return {
         id: crypto.randomUUID(),
         opgeslagenOp: new Date().toISOString(),
@@ -1117,6 +1209,9 @@
         verbaleAgressie: document.getElementById('verbaleAgressie').checked,
         fysiekeAgressie: document.getElementById('fysiekeAgressie').checked,
         beschrijving: document.getElementById('beschrijving').value.trim(),
+        beschrijvingBijlagen: window.O2Files && beschrijvingZone
+          ? window.O2Files.getZoneFiles(beschrijvingZone)
+          : [],
         leerlingen: [...state.geselecteerdeLeerlingen].sort(),
         personeel: [...state.geselecteerdePersoneel].sort(),
         opvolgingen: getOpvolgingen(),
@@ -1369,6 +1464,12 @@
       const verslag = document.getElementById('verslag');
       const status = document.getElementById('statusMsg');
 
+      const beschrijvingBijlagen = window.O2Files
+        ? window.O2Files.formatFilesForReport(
+            window.O2Files.getZoneFiles(document.getElementById('beschrijvingBijlagen'))
+          )
+        : '';
+
       const tekst = `O2 TEAM – INCIDENT MET IMPACT
 ${'='.repeat(40)}
 
@@ -1380,6 +1481,7 @@ ${incidentTypes()}
 
 BESCHRIJVING SITUATIE
 ${document.getElementById('beschrijving').value.trim() || '—'}
+${beschrijvingBijlagen ? `\nBIJLAGEN BESCHRIJVING\n${beschrijvingBijlagen}` : ''}
 
 BETROKKEN LEERLINGEN
 ${lijstOf(state.geselecteerdeLeerlingen)}
@@ -1398,7 +1500,11 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
 
       verslag.textContent = tekst;
       try {
-        const result = await saveIncident(collectIncidentData());
+        let incident = collectIncidentData();
+        if (window.O2Files) {
+          incident = await window.O2Files.prepareIncidentAttachments(incident);
+        }
+        const result = await saveIncident(incident);
         const where = result?.mode === 'supabase'
           ? 'opgeslagen in Supabase (gedeeld).'
           : 'opgeslagen lokaal in deze browser.';
@@ -1511,6 +1617,9 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       renderTags(document.getElementById('personeelTags'), state.geselecteerdePersoneel, 'personeel');
       clearOpvolgingen();
       addOpvolgingRow();
+      if (window.O2Files) {
+        window.O2Files.clearZone(document.getElementById('beschrijvingBijlagen'));
+      }
       document.getElementById('verslag').textContent = '';
       document.getElementById('statusMsg').textContent = '';
       document.getElementById('statusMsg').className = 'status';
@@ -1525,6 +1634,9 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       if (info?.mode === 'supabase') {
         status.textContent = `Supabase verbonden (${info.count} incidenten).`;
         status.className = 'status ok';
+      }
+      if (window.O2Files) {
+        window.O2Files.mountZone(document.getElementById('beschrijvingBijlagen'));
       }
       return loadLijsten();
     }).then(() => addOpvolgingRow());
