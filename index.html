@@ -31,7 +31,7 @@
         </button>
         <button type="button" class="nav-item" data-tab="lijsten" role="tab" aria-selected="false" data-admin-only hidden>
           <span class="nav-ico" aria-hidden="true">☰</span> Lijsten &amp; bulk
-          <span class="nav-badge">Import</span>
+          <span class="nav-badge">Importeren</span>
         </button>
         <button type="button" class="nav-item" data-tab="statistieken" role="tab" aria-selected="false">
           <span class="nav-ico" aria-hidden="true">◈</span> Statistieken
@@ -50,7 +50,7 @@
           <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Menu">Menu</button>
           <div>
             <div class="topbar-title" id="topbarTitle">Overzicht</div>
-            <div class="topbar-sub" id="topbarSub">Dashboard O2 · Incidenten met impact</div>
+            <div class="topbar-sub" id="topbarSub">Overzicht O2 · Incidenten met impact</div>
           </div>
         </div>
         <div class="topbar-meta">
@@ -72,8 +72,8 @@
                 <span>Start een volledig verslag met betrokkenen en opvolging.</span>
               </button>
               <button type="button" class="quick-card" data-tab="lijsten" data-admin-only hidden>
-                <strong>Bulk import namen</strong>
-                <span>Plak of upload Excel/CSV — eerst preview, dan bevestigen.</span>
+                <strong>Namen importeren</strong>
+                <span>Plak of upload Excel/CSV — eerst voorbeeld, dan bevestigen.</span>
               </button>
               <button type="button" class="quick-card" data-tab="statistieken">
                 <strong>Statistieken</strong>
@@ -114,7 +114,7 @@
               </div>
               <div>
                 <p class="hint" style="margin:0 0 0.75rem">Gebruik <strong>Terug naar portalen</strong> links om terug te keren naar Chill-outs / Nablijven / O2.</p>
-                <button type="button" class="btn-primary" data-tab="lijsten" data-admin-only hidden>Bulk import openen</button>
+                <button type="button" class="btn-primary" data-tab="lijsten" data-admin-only hidden>Namen importeren</button>
               </div>
             </div>
           </section>
@@ -222,13 +222,13 @@
       <div id="tabLijsten" class="tab-panel no-print" role="tabpanel" hidden>
         <section class="card">
           <div class="card-head">
-            <h2>Bulk import namen</h2>
-            <span class="card-hint">Plakken of Excel — eerst preview, dan bevestigen</span>
+            <h2>Namen importeren</h2>
+            <span class="card-hint">Plakken of Excel — eerst voorbeeld, dan bevestigen</span>
           </div>
           <div class="import-panel">
-            <div class="import-panel-title">Bulk / Excel import</div>
+            <div class="import-panel-title">Importeren via Excel</div>
             <p class="hint" style="margin-bottom:1rem">
-              Importeer namen voor leerlingen, personeel of team. Eerst preview, daarna bevestigen.
+              Importeer namen voor leerlingen, personeel of team. Eerst voorbeeld, daarna bevestigen.
               Opgeslagen in deze browser. Download JSON om <code>lijsten.json</code> te updaten.
             </p>
 
@@ -254,7 +254,7 @@
             <label for="lijstBulkText">Plak namen (één per regel)</label>
             <textarea id="lijstBulkText" class="bulk-paste" placeholder="Degrendele;Leandro&#10;Geers;Lewis&#10;Lisa Janssens"></textarea>
             <div class="btn-row" style="margin-top:0.75rem">
-              <button type="button" class="btn-secondary btn-small" id="lijstPreviewPaste">Preview tonen</button>
+              <button type="button" class="btn-secondary btn-small" id="lijstPreviewPaste">Voorbeeld tonen</button>
               <label class="btn-secondary btn-small" style="cursor:pointer">
                 Excel / CSV
                 <input type="file" id="lijstExcelFile" accept=".xlsx,.xls,.csv" hidden>
@@ -263,7 +263,7 @@
           </div>
 
           <div id="lijstPreviewWrap" hidden>
-            <h3 class="section-subhead">Preview — <span id="lijstPreviewCount">0</span> namen</h3>
+            <h3 class="section-subhead">Voorbeeld — <span id="lijstPreviewCount">0</span> namen</h3>
             <div class="import-preview">
               <table>
                 <thead>
@@ -1008,7 +1008,7 @@
       set('homeKpiOpvolgingen', opv);
       const mode = document.getElementById('modePill');
       if (mode && window.O2DB) {
-        mode.textContent = window.O2DB.isRemote() ? 'Online' : 'Alleen lokaal';
+        mode.textContent = window.O2DB.isRemote() ? 'Verbonden' : 'Alleen lokaal';
         mode.classList.toggle('online', !!window.O2DB.isRemote());
         mode.title = window.O2DB.isRemote()
           ? 'Gegevens worden gedeeld (cloud)'
@@ -1111,9 +1111,9 @@
         if (el) el.hidden = id !== tabId;
       });
       const titles = {
-        home: ['Overzicht', 'Dashboard O2 · Incidenten met impact'],
+        home: ['Overzicht', 'Overzicht O2 · Incidenten met impact'],
         formulier: ['Nieuw incident', 'Registratie, teamopvolging en verslag'],
-        lijsten: ['Lijsten & bulk import', 'Leerlingen, personeel en team beheren'],
+        lijsten: ['Lijsten & importeren', 'Leerlingen, personeel en team beheren'],
         statistieken: ['Statistieken', 'Inzicht in incidenten en opvolgingen']
       };
       const t = titles[tabId] || titles.home;
@@ -1184,12 +1184,11 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       }
     }
 
-    document.getElementById('headerDate').textContent = new Date().toLocaleDateString('nl-BE', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    document.getElementById('headerDate').textContent = `${dd}/${mm}/${yyyy}`;
 
     document.getElementById('addLeerling').addEventListener('click', () => {
       addFromSelect(
@@ -1369,11 +1368,11 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       const mode = document.getElementById('modePill');
       if (info?.mode === 'supabase') {
         if (status) {
-          status.textContent = `Online verbonden (${info.count} incidenten).`;
+          status.textContent = `Verbonden (${info.count} incidenten).`;
           status.className = 'status ok';
         }
         if (mode) {
-          mode.textContent = 'Online';
+          mode.textContent = 'Verbonden';
           mode.title = 'Gegevens worden gedeeld (cloud)';
           mode.classList.add('online');
         }
