@@ -401,6 +401,37 @@
       return `${d}/${m}/${y}`;
     }
 
+    function enhanceDateField(input) {
+      if (!input || input.dataset.euDate === '1') return;
+      input.dataset.euDate = '1';
+      input.lang = 'nl-BE';
+      const wrap = document.createElement('div');
+      wrap.className = 'date-field-wrap';
+      const display = document.createElement('input');
+      display.type = 'text';
+      display.readOnly = true;
+      display.tabIndex = -1;
+      display.placeholder = 'dd/mm/jjjj';
+      display.className = 'date-field-display';
+      display.setAttribute('aria-hidden', 'true');
+      const sync = () => {
+        const v = input.value;
+        if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+          display.value = '';
+          return;
+        }
+        const [y, m, d] = v.split('-');
+        display.value = `${d}/${m}/${y}`;
+      };
+      input.classList.add('date-field-native');
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(display);
+      wrap.appendChild(input);
+      input.addEventListener('input', sync);
+      input.addEventListener('change', sync);
+      sync();
+    }
+
     function fillSelect(selectEl, items) {
       selectEl.innerHTML = '';
       items.forEach((naam) => {
@@ -474,6 +505,7 @@
       if (window.O2Files) {
         window.O2Files.mountZone(row.querySelector('[data-file-zone="opvolging"]'));
       }
+      enhanceDateField(row.querySelector('.opvolging-datum'));
     }
 
     function getOpvolgingen() {
@@ -1383,6 +1415,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       if (window.O2Files) {
         window.O2Files.mountZone(document.getElementById('beschrijvingBijlagen'));
       }
+      enhanceDateField(document.getElementById('datumIncident'));
       return loadLijsten();
     }).then(() => {
       addOpvolgingRow();

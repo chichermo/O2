@@ -711,6 +711,45 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .file-zone-hint { margin-top: 0.35rem; margin-bottom: 0; }
 
+.file-add-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.file-add-btn .file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.date-field-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.date-field-wrap .date-field-display {
+  width: 100%;
+}
+
+.date-field-wrap .date-field-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 @media print {
   .file-item-actions { display: none !important; }
 }

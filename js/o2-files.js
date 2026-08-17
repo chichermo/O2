@@ -127,7 +127,7 @@
           <input type="file" class="file-input" multiple>
         </label>
       </div>
-      <p class="hint file-zone-hint no-print">Afbeeldingen, PDF, Word… max. ${formatSize(MAX_BYTES)} per bestand.</p>
+      <p class="hint file-zone-hint no-print">Je kunt bestanden toevoegen (afbeelding, PDF of Word). Maximum ${formatSize(MAX_BYTES)} per bestand.</p>
     `
       );
     }
