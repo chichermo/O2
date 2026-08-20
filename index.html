@@ -599,27 +599,23 @@
         }
       }
 
-      // 3) Browser-custom overschrijft per lijst (als die niet leeg/placeholder is)
+      // 3) Cloud/bestand heeft voorrang. Browser-cache alleen als er nog geen gedeelde lijst is.
       const custom = readCustomLijsten();
-      if (
-        isPlaceholder(custom.leerlingen) ||
-        isPlaceholder(custom.personeel) ||
-        isPlaceholder(custom.team)
-      ) {
-        try {
-          localStorage.removeItem(LIJSTEN_KEY);
-        } catch (_) {}
+      const hasBase = !!(base.leerlingen.length || base.personeel.length || base.team.length);
+      if (hasBase) {
+        state.leerlingen = base.leerlingen;
+        state.personeel = base.personeel;
+        state.team = base.team;
+      } else {
+        const pick = (customList) => {
+          const c = norm(customList || []);
+          return c.length && !isPlaceholder(c) ? c : [];
+        };
+        state.leerlingen = pick(custom.leerlingen);
+        state.personeel = pick(custom.personeel);
+        state.team = pick(custom.team);
       }
-      const pick = (customList, baseList) => {
-        const c = norm(customList || []);
-        if (c.length && !isPlaceholder(c)) return c;
-        return baseList;
-      };
-      state.leerlingen = pick(custom.leerlingen, base.leerlingen);
-      state.personeel = pick(custom.personeel, base.personeel);
-      state.team = pick(custom.team, base.team);
       state._lijstenBase = base;
-      // Houd browser-cache in sync met de effectieve lijsten (geen placeholders)
       try {
         localStorage.setItem(
           LIJSTEN_KEY,
