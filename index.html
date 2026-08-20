@@ -229,7 +229,7 @@
             <div class="import-panel-title">Importeren via Excel</div>
             <p class="hint" style="margin-bottom:1rem">
               Importeer namen voor leerlingen, personeel of team. Eerst voorbeeld, daarna bevestigen.
-              Opgeslagen in deze browser. Download JSON om <code>lijsten.json</code> te updaten.
+              Opgeslagen gedeeld in de cloud (en lokaal als back-up). Download JSON om <code>lijsten.json</code> te archiveren.
             </p>
 
           <div class="grid-2">
@@ -549,42 +549,92 @@
 
     async function loadLijsten() {
       const status = document.getElementById('statusMsg');
-      let base = { leerlingen: [], personeel: [], team: [] };
-      try {
-        const res = await fetch('lijsten.json');
-        if (!res.ok) throw new Error('lijsten.json niet gevonden');
-        const data = await res.json();
-        const norm = (arr) =>
-          window.O2Import && window.O2Import.normalizeNameList
-            ? window.O2Import.normalizeNameList(arr)
-            : (arr || []);
-        base = {
-          leerlingen: norm(data.leerlingen || []),
-          personeel: norm(data.personeel || []),
-          team: norm(data.team || [])
-        };
-        if (status) {
-          status.textContent = 'Lijsten geladen.';
-          status.className = 'status ok';
-        }
-      } catch (err) {
-        if (status) {
-          status.textContent = 'Kon lijsten.json niet laden. Open via een lokale server of vul het JSON-bestand.';
-          status.className = 'status error';
-        }
-        const fallback = ['Naam 1', 'Naam 2', 'Naam 3', 'Naam 4', 'Naam 5'];
-        base = { leerlingen: fallback, personeel: fallback, team: fallback };
-      }
-
-      const custom = readCustomLijsten();
       const norm = (arr) =>
         window.O2Import && window.O2Import.normalizeNameList
           ? window.O2Import.normalizeNameList(arr)
           : (arr || []);
-      state.leerlingen = norm(custom.leerlingen || base.leerlingen);
-      state.personeel = norm(custom.personeel || base.personeel);
-      state.team = norm(custom.team || base.team);
+      const isPlaceholder = (arr) =>
+        Array.isArray(arr) &&
+        arr.length > 0 &&
+        arr.every((n) => /^Naam\s*\d+$/i.test(String(n || '').trim()));
+
+      let base = { leerlingen: [], personeel: [], team: [] };
+
+      // 1) Gedeelde lijsten in Supabase (voorkeur)
+      try {
+        if (window.O2DB && window.O2DB.loadLijsten) {
+          const remote = await window.O2DB.loadLijsten();
+          if (
+            remote &&
+            (remote.leerlingen.length || remote.personeel.length || remote.team.length) &&
+            !isPlaceholder(remote.leerlingen)
+          ) {
+            base = {
+              leerlingen: norm(remote.leerlingen),
+              personeel: norm(remote.personeel),
+              team: norm(remote.team)
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('O2 remote lijsten:', err);
+      }
+
+      // 2) Fallback: lijsten.json
+      if (!base.leerlingen.length && !base.personeel.length && !base.team.length) {
+        try {
+          const res = await fetch('lijsten.json');
+          if (!res.ok) throw new Error('lijsten.json niet gevonden');
+          const data = await res.json();
+          base = {
+            leerlingen: norm(data.leerlingen || []),
+            personeel: norm(data.personeel || []),
+            team: norm(data.team || [])
+          };
+        } catch (err) {
+          if (status) {
+            status.textContent = 'Kon lijsten niet laden. Importeer opnieuw via Lijsten & importeren.';
+            status.className = 'status error';
+          }
+        }
+      }
+
+      // 3) Browser-custom overschrijft per lijst (als die niet leeg/placeholder is)
+      const custom = readCustomLijsten();
+      if (
+        isPlaceholder(custom.leerlingen) ||
+        isPlaceholder(custom.personeel) ||
+        isPlaceholder(custom.team)
+      ) {
+        try {
+          localStorage.removeItem(LIJSTEN_KEY);
+        } catch (_) {}
+      }
+      const pick = (customList, baseList) => {
+        const c = norm(customList || []);
+        if (c.length && !isPlaceholder(c)) return c;
+        return baseList;
+      };
+      state.leerlingen = pick(custom.leerlingen, base.leerlingen);
+      state.personeel = pick(custom.personeel, base.personeel);
+      state.team = pick(custom.team, base.team);
       state._lijstenBase = base;
+      // Houd browser-cache in sync met de effectieve lijsten (geen placeholders)
+      try {
+        localStorage.setItem(
+          LIJSTEN_KEY,
+          JSON.stringify({
+            leerlingen: state.leerlingen,
+            personeel: state.personeel,
+            team: state.team
+          })
+        );
+      } catch (_) {}
+
+      if (status && (state.leerlingen.length || state.personeel.length || state.team.length)) {
+        status.textContent = `Lijsten geladen (${state.leerlingen.length} leerlingen · ${state.personeel.length} personeel · ${state.team.length} team).`;
+        status.className = 'status ok';
+      }
 
       applyLijstenToForm();
       renderLijstenBeheer();
@@ -598,7 +648,7 @@
       }
     }
 
-    function saveCustomLijsten(partial) {
+    async function saveCustomLijsten(partial) {
       const norm = (arr) =>
         window.O2Import && window.O2Import.normalizeNameList
           ? window.O2Import.normalizeNameList(arr)
@@ -614,6 +664,13 @@
       state.team = next.team;
       applyLijstenToForm();
       renderLijstenBeheer();
+      try {
+        if (window.O2DB && window.O2DB.saveLijsten) {
+          await window.O2DB.saveLijsten(next);
+        }
+      } catch (err) {
+        console.warn('O2 lijsten cloud-opslag mislukt:', err);
+      }
     }
 
     function applyLijstenToForm() {
@@ -731,7 +788,7 @@
       }
     }
 
-    function confirmLijstImport() {
+    async function confirmLijstImport() {
       if (!isO2Admin()) return;
       if (!pendingLijstNames.length) return;
       const target = document.getElementById('lijstTarget').value;
@@ -757,12 +814,12 @@
         team: state.team
       };
       payload[target] = next;
-      saveCustomLijsten(payload);
+      await saveCustomLijsten(payload);
       clearLijstPreview();
       document.getElementById('lijstBulkText').value = '';
       const status = document.getElementById('lijstImportStatus');
       if (status) {
-        status.textContent = `${next.length} namen in “${target}” opgeslagen.`;
+        status.textContent = `${next.length} namen in “${target}” opgeslagen (cloud + browser).`;
         status.className = 'status ok';
       }
     }
@@ -1370,7 +1427,7 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     });
 
     document.getElementById('lijstResetCustom').addEventListener('click', async () => {
-      if (!confirm('Aangepaste lijsten wissen en opnieuw laden uit lijsten.json?')) return;
+      if (!confirm('Lokale browserlijst wissen en opnieuw laden uit de cloud / lijsten.json?')) return;
       localStorage.removeItem(LIJSTEN_KEY);
       await loadLijsten();
     });

@@ -3,6 +3,7 @@
  */
 (function () {
   const LOCAL_KEY = 'o2_incidenten';
+  const LIJSTEN_SETTINGS_KEY = 'o2_lijsten';
   let client = null;
   let cache = null;
 
@@ -111,6 +112,49 @@
       const { error } = await sb.from('o2_incidenten').delete().neq('id', '');
       if (error) throw error;
       return { mode: 'supabase' };
+    },
+    /** Gedeelde naamlijsten (leerlingen / personeel / team) via app_settings. */
+    async loadLijsten() {
+      const sb = getClient();
+      if (!sb) return null;
+      const { data, error } = await sb
+        .from('app_settings')
+        .select('value')
+        .eq('key', LIJSTEN_SETTINGS_KEY)
+        .maybeSingle();
+      if (error) {
+        console.error('O2 lijsten load:', error);
+        return null;
+      }
+      const value = data?.value;
+      if (!value || typeof value !== 'object') return null;
+      return {
+        leerlingen: Array.isArray(value.leerlingen) ? value.leerlingen : [],
+        personeel: Array.isArray(value.personeel) ? value.personeel : [],
+        team: Array.isArray(value.team) ? value.team : []
+      };
+    },
+    async saveLijsten(lijsten) {
+      const payload = {
+        leerlingen: Array.isArray(lijsten?.leerlingen) ? lijsten.leerlingen : [],
+        personeel: Array.isArray(lijsten?.personeel) ? lijsten.personeel : [],
+        team: Array.isArray(lijsten?.team) ? lijsten.team : []
+      };
+      const sb = getClient();
+      if (!sb) return { mode: 'local', lijsten: payload };
+      const { error } = await sb.from('app_settings').upsert(
+        {
+          key: LIJSTEN_SETTINGS_KEY,
+          value: payload,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'key' }
+      );
+      if (error) {
+        console.error('O2 lijsten save:', error);
+        throw error;
+      }
+      return { mode: 'supabase', lijsten: payload };
     }
   };
 })();

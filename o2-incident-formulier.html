@@ -1229,26 +1229,47 @@
 
     async function loadLijsten() {
       const status = document.getElementById('statusMsg');
+      const isPlaceholder = (arr) =>
+        Array.isArray(arr) &&
+        arr.length > 0 &&
+        arr.every((n) => /^Naam\s*\d+$/i.test(String(n || '').trim()));
+
+      let data = null;
       try {
-        const res = await fetch('lijsten.json');
-        if (!res.ok) throw new Error('lijsten.json niet gevonden');
-        const data = await res.json();
-        state.leerlingen = data.leerlingen || [];
-        state.personeel = data.personeel || [];
-        state.team = data.team || [];
-        fillSelect(document.getElementById('leerlingSelect'), state.leerlingen);
-        fillSelect(document.getElementById('personeelSelect'), state.personeel);
-        status.textContent = 'Lijsten geladen.';
-        status.className = 'status ok';
+        if (window.O2DB && window.O2DB.loadLijsten) {
+          const remote = await window.O2DB.loadLijsten();
+          if (
+            remote &&
+            (remote.leerlingen.length || remote.personeel.length || remote.team.length) &&
+            !isPlaceholder(remote.leerlingen)
+          ) {
+            data = remote;
+          }
+        }
       } catch (err) {
-        status.textContent = 'Kon lijsten.json niet laden. Open via een lokale server of vul het JSON-bestand.';
-        status.className = 'status error';
-        const fallback = ['Naam 1', 'Naam 2', 'Naam 3', 'Naam 4', 'Naam 5'];
-        state.leerlingen = fallback;
-        state.personeel = fallback;
-        state.team = fallback;
-        fillSelect(document.getElementById('leerlingSelect'), fallback);
-        fillSelect(document.getElementById('personeelSelect'), fallback);
+        console.warn('O2 remote lijsten:', err);
+      }
+
+      if (!data) {
+        try {
+          const res = await fetch('lijsten.json');
+          if (!res.ok) throw new Error('lijsten.json niet gevonden');
+          data = await res.json();
+        } catch (err) {
+          status.textContent = 'Kon lijsten niet laden. Open via een lokale server of vul het JSON-bestand.';
+          status.className = 'status error';
+          data = { leerlingen: [], personeel: [], team: [] };
+        }
+      }
+
+      state.leerlingen = data.leerlingen || [];
+      state.personeel = data.personeel || [];
+      state.team = data.team || [];
+      fillSelect(document.getElementById('leerlingSelect'), state.leerlingen);
+      fillSelect(document.getElementById('personeelSelect'), state.personeel);
+      if (state.leerlingen.length || state.personeel.length || state.team.length) {
+        status.textContent = `Lijsten geladen (${state.leerlingen.length} leerlingen · ${state.personeel.length} personeel).`;
+        status.className = 'status ok';
       }
     }
 
