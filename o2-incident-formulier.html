@@ -670,17 +670,105 @@
     }
 
     .date-field-wrap { position: relative; width: 100%; }
+    .date-field-control { display: flex; align-items: stretch; }
+    .date-field-wrap .date-field-text {
+      flex: 1;
+      min-width: 0;
+      width: 1%;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .date-field-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.75rem;
+      padding: 0;
+      flex-shrink: 0;
+      border: 1px solid var(--border-default);
+      border-left: none;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      background: var(--surface-inset);
+      color: var(--accent);
+    }
+    .date-field-toggle:hover,
+    .date-field-wrap.open .date-field-toggle { background: var(--accent-muted); }
+    .date-field-wrap.invalid .date-field-text,
+    .date-field-wrap.invalid .date-field-toggle { border-color: var(--coral); }
     .date-field-wrap .date-field-native {
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      margin: 0;
+      width: 1px;
+      height: 1px;
       padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
       border: 0;
+      pointer-events: none;
+    }
+    .date-field-popup {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 6px);
+      left: 0;
+      width: 292px;
+      max-width: calc(100vw - 2rem);
+      background: #0e1c34;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      padding: 0.75rem;
+    }
+    .date-field-popup[hidden] { display: none; }
+    .cal-header { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.6rem; }
+    .cal-nav {
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      flex-shrink: 0;
+      border: 1px solid var(--border-default);
+      background: var(--surface-inset);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+    .cal-month, .cal-year { width: auto; padding: 0.35rem 0.45rem; font-size: 0.82rem; }
+    .cal-month { flex: 1; min-width: 0; }
+    .cal-year { width: 5.2rem; flex-shrink: 0; }
+    .cal-weekdays, .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+    .cal-weekdays {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .cal-day {
+      padding: 0.35rem 0;
+      border: none;
       background: transparent;
+      border-radius: var(--radius-sm);
+      font-weight: 500;
+      font-size: 0.82rem;
+      color: var(--text-primary);
+    }
+    .cal-day:hover { background: var(--accent-muted); }
+    .cal-day.outside { color: var(--text-faint); }
+    .cal-day.today { box-shadow: inset 0 0 0 1px var(--accent-deep); }
+    .cal-day.selected, .cal-day.selected:hover { background: var(--accent); color: var(--accent-ink); }
+    .cal-today {
+      width: 100%;
+      margin-top: 0.6rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--accent-muted);
+      color: var(--accent);
+      border: none;
+      font-size: 0.82rem;
     }
 
     @media print {
@@ -1081,35 +1169,267 @@
       return `${d}/${m}/${y}`;
     }
 
+    const DATE_MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+    const DATE_WEEKDAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
+    const DATE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"></rect><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>';
+
+    function toIsoDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseIsoDate(iso) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+      if (!match) return null;
+      const y = Number(match[1]);
+      const m = Number(match[2]);
+      const d = Number(match[3]);
+      const date = new Date(y, m - 1, d);
+      if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+      return date;
+    }
+
+    function parseFlexibleDate(text) {
+      const value = (text || '').trim();
+      if (parseIsoDate(value)) return value;
+      const match = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(value);
+      if (!match) return null;
+      const iso = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      return parseIsoDate(iso) ? iso : null;
+    }
+
+    function maskDateInput(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 8);
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    }
+
+    function closeDatePopups(except) {
+      document.querySelectorAll('.date-field-wrap.open').forEach((wrap) => {
+        if (wrap === except) return;
+        wrap.classList.remove('open');
+        const popup = wrap.querySelector('.date-field-popup');
+        if (popup) popup.hidden = true;
+        const btn = wrap.querySelector('.date-field-toggle');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    if (!window.__o2DateOutside) {
+      window.__o2DateOutside = true;
+      document.addEventListener('click', (event) => {
+        document.querySelectorAll('.date-field-wrap.open').forEach((wrap) => {
+          if (!wrap.contains(event.target)) closeDatePopups();
+        });
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDatePopups();
+      });
+    }
+
+    function renderDateGrid(wrap) {
+      const grid = wrap.querySelector('.cal-grid');
+      const year = wrap._viewYear;
+      const month = wrap._viewMonth;
+      const yearSelect = wrap.querySelector('.cal-year');
+      wrap.querySelector('.cal-month').value = String(month);
+      if (![...yearSelect.options].some((opt) => Number(opt.value) === year)) {
+        const opt = document.createElement('option');
+        opt.value = String(year);
+        opt.textContent = String(year);
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = String(year);
+      const selected = wrap.querySelector('.date-field-native').value;
+      const todayIso = toIsoDate(new Date());
+      const first = new Date(year, month, 1);
+      const start = new Date(year, month, 1 - ((first.getDay() + 6) % 7));
+      grid.innerHTML = '';
+      for (let i = 0; i < 42; i += 1) {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        const iso = toIsoDate(date);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cal-day';
+        if (date.getMonth() !== month) btn.classList.add('outside');
+        if (iso === todayIso) btn.classList.add('today');
+        if (iso === selected) btn.classList.add('selected');
+        btn.dataset.date = iso;
+        btn.textContent = String(date.getDate());
+        btn.setAttribute('aria-label', formatDate(iso));
+        grid.appendChild(btn);
+      }
+    }
+
+    function applyDateIso(wrap, iso, updateText) {
+      const native = wrap.querySelector('.date-field-native');
+      const text = wrap.querySelector('.date-field-text');
+      native.value = iso;
+      if (updateText) text.value = formatDate(iso);
+      wrap.classList.remove('invalid');
+      text.removeAttribute('aria-invalid');
+      if (wrap.classList.contains('open')) {
+        const date = parseIsoDate(iso);
+        wrap._viewYear = date.getFullYear();
+        wrap._viewMonth = date.getMonth();
+        renderDateGrid(wrap);
+      }
+    }
+
+    function openDatePopup(wrap) {
+      closeDatePopups(wrap);
+      const current = parseIsoDate(wrap.querySelector('.date-field-native').value) || new Date();
+      wrap._viewYear = current.getFullYear();
+      wrap._viewMonth = current.getMonth();
+      renderDateGrid(wrap);
+      wrap.classList.add('open');
+      wrap.querySelector('.date-field-popup').hidden = false;
+      wrap.querySelector('.date-field-toggle').setAttribute('aria-expanded', 'true');
+    }
+
+    function commitDateWrap(wrap) {
+      const text = wrap.querySelector('.date-field-text');
+      const native = wrap.querySelector('.date-field-native');
+      const raw = text.value.trim();
+      if (!raw) {
+        native.value = '';
+        wrap.classList.remove('invalid');
+        text.removeAttribute('aria-invalid');
+        return true;
+      }
+      const iso = parseFlexibleDate(raw);
+      if (!iso) {
+        native.value = '';
+        wrap.classList.add('invalid');
+        text.setAttribute('aria-invalid', 'true');
+        return false;
+      }
+      applyDateIso(wrap, iso, true);
+      return true;
+    }
+
     function enhanceDateField(input) {
       if (!input || input.dataset.euDate === '1') return;
       input.dataset.euDate = '1';
-      input.lang = 'nl-BE';
+      input.tabIndex = -1;
+      input.setAttribute('aria-hidden', 'true');
+      const wasRequired = input.required;
+      input.required = false;
+
       const wrap = document.createElement('div');
       wrap.className = 'date-field-wrap';
-      const display = document.createElement('input');
-      display.type = 'text';
-      display.readOnly = true;
-      display.tabIndex = -1;
-      display.placeholder = 'dd/mm/jjjj';
-      display.className = 'date-field-display';
-      display.setAttribute('aria-hidden', 'true');
-      const sync = () => {
-        const v = input.value;
-        if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-          display.value = '';
-          return;
-        }
-        const [y, m, d] = v.split('-');
-        display.value = `${d}/${m}/${y}`;
-      };
+      const control = document.createElement('div');
+      control.className = 'date-field-control';
+      const text = document.createElement('input');
+      text.type = 'text';
+      text.className = 'date-field-text';
+      text.placeholder = 'dd/mm/jjjj';
+      text.inputMode = 'numeric';
+      text.autocomplete = 'off';
+      text.required = wasRequired;
+      if (input.id) {
+        text.id = `${input.id}Tekst`;
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (label) label.htmlFor = text.id;
+      }
+      text.setAttribute('aria-label', text.id === 'datumIncidentTekst' ? 'Datum incident met impact' : 'Datum');
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'date-field-toggle';
+      toggle.setAttribute('aria-label', 'Kalender openen');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-haspopup', 'dialog');
+      toggle.innerHTML = DATE_ICON;
+
+      const popup = document.createElement('div');
+      popup.className = 'date-field-popup';
+      popup.hidden = true;
+      popup.setAttribute('role', 'dialog');
+      popup.setAttribute('aria-label', 'Kalender');
+      const now = new Date();
+      const years = [];
+      for (let year = 2010; year <= now.getFullYear() + 1; year += 1) years.push(year);
+      popup.innerHTML = `
+        <div class="cal-header">
+          <button type="button" class="cal-nav cal-prev" aria-label="Vorige maand">‹</button>
+          <select class="cal-month" aria-label="Maand">${DATE_MONTHS.map((naam, index) => `<option value="${index}">${naam}</option>`).join('')}</select>
+          <select class="cal-year" aria-label="Jaar">${years.map((year) => `<option value="${year}">${year}</option>`).join('')}</select>
+          <button type="button" class="cal-nav cal-next" aria-label="Volgende maand">›</button>
+        </div>
+        <div class="cal-weekdays">${DATE_WEEKDAYS.map((dag) => `<span>${dag}</span>`).join('')}</div>
+        <div class="cal-grid"></div>
+        <button type="button" class="cal-today">Vandaag</button>
+      `;
+
       input.classList.add('date-field-native');
       input.parentNode.insertBefore(wrap, input);
-      wrap.appendChild(display);
+      control.appendChild(text);
+      control.appendChild(toggle);
+      wrap.appendChild(control);
       wrap.appendChild(input);
-      input.addEventListener('input', sync);
-      input.addEventListener('change', sync);
-      sync();
+      wrap.appendChild(popup);
+      if (parseIsoDate(input.value)) text.value = formatDate(input.value);
+
+      text.addEventListener('input', () => {
+        const direct = parseFlexibleDate(text.value);
+        if (direct && /[-.]/.test(text.value)) {
+          applyDateIso(wrap, direct, true);
+          return;
+        }
+        const masked = maskDateInput(text.value);
+        if (text.value !== masked) text.value = masked;
+        const iso = parseFlexibleDate(masked);
+        if (iso) applyDateIso(wrap, iso, false);
+        else input.value = '';
+        wrap.classList.remove('invalid');
+        text.removeAttribute('aria-invalid');
+      });
+      text.addEventListener('blur', () => commitDateWrap(wrap));
+      text.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          openDatePopup(wrap);
+        }
+      });
+      toggle.addEventListener('click', () => {
+        if (wrap.classList.contains('open')) closeDatePopups();
+        else openDatePopup(wrap);
+      });
+      popup.addEventListener('click', (event) => {
+        const day = event.target.closest('[data-date]');
+        if (day) {
+          applyDateIso(wrap, day.dataset.date, true);
+          closeDatePopups();
+          text.focus();
+          return;
+        }
+        if (event.target.closest('.cal-prev')) {
+          const date = new Date(wrap._viewYear, wrap._viewMonth - 1, 1);
+          wrap._viewYear = date.getFullYear();
+          wrap._viewMonth = date.getMonth();
+          renderDateGrid(wrap);
+        }
+        if (event.target.closest('.cal-next')) {
+          const date = new Date(wrap._viewYear, wrap._viewMonth + 1, 1);
+          wrap._viewYear = date.getFullYear();
+          wrap._viewMonth = date.getMonth();
+          renderDateGrid(wrap);
+        }
+        if (event.target.closest('.cal-today')) {
+          applyDateIso(wrap, toIsoDate(new Date()), true);
+          closeDatePopups();
+          text.focus();
+        }
+      });
+      popup.addEventListener('change', (event) => {
+        if (event.target.classList.contains('cal-month')) wrap._viewMonth = Number(event.target.value);
+        if (event.target.classList.contains('cal-year')) wrap._viewYear = Number(event.target.value);
+        renderDateGrid(wrap);
+      });
     }
 
     function fillSelect(selectEl, items) {
