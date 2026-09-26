@@ -104,10 +104,17 @@
         return { mode: 'local', updated };
       }
       const row = incidentToRow(incident);
-      const query = updated
-        ? sb.from('o2_incidenten').update(row).eq('id', incident.id)
-        : sb.from('o2_incidenten').insert(row);
-      const { error } = await query;
+      const write = (payload) => (
+        updated
+          ? sb.from('o2_incidenten').update(payload).eq('id', incident.id)
+          : sb.from('o2_incidenten').insert(payload)
+      );
+      let { error } = await write(row);
+      if (error && /beschrijving_bijlagen/i.test(error.message || '')) {
+        const withoutAttachments = { ...row };
+        delete withoutAttachments.beschrijving_bijlagen;
+        ({ error } = await write(withoutAttachments));
+      }
       if (error) {
         console.error('O2 Supabase save:', error);
         localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
