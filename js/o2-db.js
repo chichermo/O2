@@ -88,18 +88,44 @@
     isRemote() {
       return !!getClient();
     },
+    async reload() {
+      cache = await loadAll();
+      return cache;
+    },
     async save(incident) {
       if (!cache) cache = [];
-      cache.push(incident);
+      const index = cache.findIndex((item) => item.id === incident.id);
+      const updated = index >= 0;
+      if (updated) cache[index] = incident;
+      else cache.push(incident);
+      const sb = getClient();
+      if (!sb) {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
+        return { mode: 'local', updated };
+      }
+      const row = incidentToRow(incident);
+      const query = updated
+        ? sb.from('o2_incidenten').update(row).eq('id', incident.id)
+        : sb.from('o2_incidenten').insert(row);
+      const { error } = await query;
+      if (error) {
+        console.error('O2 Supabase save:', error);
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
+        throw error;
+      }
+      return { mode: 'supabase', updated };
+    },
+    async remove(id) {
+      if (!cache) cache = [];
+      cache = cache.filter((item) => item.id !== id);
       const sb = getClient();
       if (!sb) {
         localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
         return { mode: 'local' };
       }
-      const { error } = await sb.from('o2_incidenten').insert(incidentToRow(incident));
+      const { error } = await sb.from('o2_incidenten').delete().eq('id', id);
       if (error) {
-        console.error('O2 Supabase save:', error);
-        localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
+        console.error('O2 Supabase delete:', error);
         throw error;
       }
       return { mode: 'supabase' };

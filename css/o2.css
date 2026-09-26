@@ -1088,6 +1088,13 @@ textarea.bulk-paste {
   color: var(--text-muted);
 }
 
+.recent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
 .mobile-nav-toggle {
   display: none;
   appearance: none;

@@ -67,7 +67,7 @@
             <h1>Incidenten met impact</h1>
             <p>Registreer situaties, koppel betrokkenen, plan teamopvolging en bouw gedeelde statistieken op.</p>
             <div class="quick-grid">
-              <button type="button" class="quick-card" data-tab="formulier">
+              <button type="button" class="quick-card" data-tab="formulier" data-new-incident>
                 <strong>Nieuw incident</strong>
                 <span>Start een volledig verslag met betrokkenen en opvolging.</span>
               </button>
@@ -96,7 +96,7 @@
             </div>
             <div id="homeRecentList"></div>
             <div class="btn-row" style="margin-top:0.85rem">
-              <button type="button" class="btn-secondary btn-small" data-tab="formulier">Nieuw incident</button>
+              <button type="button" class="btn-secondary btn-small" data-tab="formulier" data-new-incident>Nieuw incident</button>
               <button type="button" class="btn-ghost btn-small" data-tab="statistieken">Alle statistieken</button>
             </div>
           </section>
@@ -121,6 +121,7 @@
         </div>
 <div id="tabFormulier" class="tab-panel" role="tabpanel" hidden>
         <form id="incidentForm">
+          <p class="status ok" id="editingBanner" hidden></p>
           <section class="card">
             <div class="card-head">
               <h2><span class="step-badge">1</span> Incident</h2>
@@ -209,6 +210,7 @@
             </div>
             <div class="actions no-print">
               <button type="button" class="btn-primary" id="genereerVerslag">Verslag genereren &amp; opslaan</button>
+              <button type="button" class="btn-ghost" id="wisIncident" hidden>Dit incident wissen</button>
               <button type="button" class="btn-secondary" id="kopieerVerslag">Kopiëren</button>
               <button type="button" class="btn-secondary" id="printVerslag">Afdrukken</button>
               <button type="reset" class="btn-ghost">Formulier leegmaken</button>
@@ -392,8 +394,38 @@
       team: [],
       geselecteerdeLeerlingen: new Set(),
       geselecteerdePersoneel: new Set(),
-      opvolgingCounter: 0
+      opvolgingCounter: 0,
+      editingId: null
     };
+
+    function setDateFieldValue(input, iso) {
+      if (!input) return;
+      input.value = iso || '';
+      const text = input.closest('.date-field-wrap')?.querySelector('.date-field-text');
+      if (text) {
+        text.value = iso ? formatDate(iso) : '';
+        text.removeAttribute('aria-invalid');
+      }
+      input.closest('.date-field-wrap')?.classList.remove('invalid');
+    }
+
+    function syncSaveButton() {
+      const btn = document.getElementById('genereerVerslag');
+      const banner = document.getElementById('editingBanner');
+      if (!btn || !banner) return;
+      const wis = document.getElementById('wisIncident');
+      if (state.editingId) {
+        btn.textContent = 'Wijzigingen opslaan';
+        banner.hidden = false;
+        banner.textContent = 'Je werkt verder op een bestaand incident. Opslaan werkt het verslag bij voor iedereen.';
+        if (wis) wis.hidden = false;
+      } else {
+        btn.textContent = 'Verslag genereren & opslaan';
+        banner.hidden = true;
+        banner.textContent = '';
+        if (wis) wis.hidden = true;
+      }
+    }
 
     function formatDate(iso) {
       if (!iso) return '—';
@@ -703,12 +735,42 @@
       if (current) selectEl.value = current;
     }
 
-    function addOpvolgingRow(datum = '', teamlid = '', notities = '') {
+    function teamledenVan(item) {
+      if (!item) return [];
+      if (Array.isArray(item.teamleden) && item.teamleden.length) return [...item.teamleden];
+      if (!item.teamlid) return [];
+      if (state.team.includes(item.teamlid)) return [item.teamlid];
+      return String(item.teamlid).split(',').map((naam) => naam.trim()).filter(Boolean);
+    }
+
+    function renderTeamTags(row) {
+      const container = row.querySelector('.opvolging-team-tags');
+      if (!container) return;
+      container.innerHTML = '';
+      [...row._team].sort().forEach((naam) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = 'Verwijderen';
+        btn.dataset.type = 'opvolging-team';
+        btn.dataset.rowId = row.dataset.id;
+        btn.dataset.naam = naam;
+        btn.innerHTML = '&times;';
+        tag.appendChild(document.createTextNode(`${naam} `));
+        tag.appendChild(btn);
+        container.appendChild(tag);
+      });
+    }
+
+    function addOpvolgingRow(datum = '', teamleden = [], notities = '', bijlagen = []) {
       state.opvolgingCounter += 1;
       const id = state.opvolgingCounter;
+      const leden = Array.isArray(teamleden) ? teamleden : teamledenVan({ teamlid: teamleden });
       const row = document.createElement('div');
       row.className = 'opvolging-row';
       row.dataset.id = String(id);
+      row._team = new Set(leden);
       row.innerHTML = `
         <div class="opvolging-row-header">
           <span>Opvolging ${id}</span>
@@ -720,22 +782,30 @@
             <input type="date" id="opvolgingDatum${id}" class="opvolging-datum" value="${datum}">
           </div>
           <div>
-            <label for="opvolgingTeamlid${id}">Teamlid</label>
-            <select id="opvolgingTeamlid${id}" class="opvolging-teamlid"></select>
+            <label for="opvolgingTeam${id}">Teamleden</label>
+            <select id="opvolgingTeam${id}" class="opvolging-team-select" multiple size="5"></select>
+            <div class="btn-row no-print">
+              <button type="button" class="btn-secondary btn-small add-opvolging-team">Toevoegen</button>
+              <button type="button" class="btn-ghost btn-small clear-opvolging-team">Alles wissen</button>
+            </div>
+            <div class="selected-tags opvolging-team-tags"></div>
+            <p class="hint">Ctrl/Cmd + klik voor meerdere, of gebruik Toevoegen.</p>
           </div>
         </div>
         <div>
           <label for="opvolgingNotities${id}">Wat werd besproken / opmerkingen</label>
-          <textarea id="opvolgingNotities${id}" class="opvolging-notities" placeholder="Beschrijf wat er besproken werd…">${notities}</textarea>
+          <textarea id="opvolgingNotities${id}" class="opvolging-notities" placeholder="Beschrijf wat er besproken werd…"></textarea>
           <div class="opvolging-bijlagen" data-file-zone="opvolging"></div>
         </div>
       `;
       document.getElementById('opvolgingList').appendChild(row);
-      const teamSelect = row.querySelector('.opvolging-teamlid');
-      fillTeamSelect(teamSelect);
-      if (teamlid) teamSelect.value = teamlid;
+      row.querySelector('.opvolging-notities').value = notities;
+      fillSelect(row.querySelector('.opvolging-team-select'), state.team);
+      renderTeamTags(row);
+      const zone = row.querySelector('[data-file-zone="opvolging"]');
       if (window.O2Files) {
-        window.O2Files.mountZone(row.querySelector('[data-file-zone="opvolging"]'));
+        window.O2Files.mountZone(zone);
+        if (bijlagen.length) window.O2Files.setZoneFiles(zone, bijlagen);
       }
       enhanceDateField(row.querySelector('.opvolging-datum'));
     }
@@ -743,14 +813,15 @@
     function getOpvolgingen() {
       return [...document.querySelectorAll('.opvolging-row')].map((row, index) => {
         const datum = row.querySelector('.opvolging-datum').value;
-        const teamlid = row.querySelector('.opvolging-teamlid').value;
+        const teamleden = [...(row._team || [])].sort();
+        const teamlid = teamleden.join(', ');
         const notities = row.querySelector('.opvolging-notities').value.trim();
         const bijlagenZone = row.querySelector('[data-file-zone="opvolging"]');
         const bijlagen = window.O2Files && bijlagenZone
           ? window.O2Files.getZoneFiles(bijlagenZone)
           : [];
-        return { nr: index + 1, datum, teamlid, notities, bijlagen };
-      }).filter((o) => o.datum || o.teamlid || o.notities || (o.bijlagen && o.bijlagen.length));
+        return { nr: index + 1, datum, teamlid, teamleden, notities, bijlagen };
+      }).filter((o) => o.datum || o.teamleden.length || o.notities || (o.bijlagen && o.bijlagen.length));
     }
 
     function formatOpvolgingen() {
@@ -758,7 +829,7 @@
       if (!items.length) return 'Geen opvolgingen ingevuld';
       return items.map((o) => {
         const datum = formatDate(o.datum);
-        const lid = o.teamlid || 'Niet gekoppeld';
+        const lid = (o.teamleden && o.teamleden.length) ? o.teamleden.join(', ') : (o.teamlid || 'Niet gekoppeld');
         const notities = o.notities || '—';
         const bijlagen = window.O2Files
           ? window.O2Files.formatFilesForReport(o.bijlagen)
@@ -1066,7 +1137,7 @@
     function collectIncidentData() {
       const beschrijvingZone = document.getElementById('beschrijvingBijlagen');
       return {
-        id: crypto.randomUUID(),
+        id: state.editingId || crypto.randomUUID(),
         opgeslagenOp: new Date().toISOString(),
         datumIncident: document.getElementById('datumIncident').value,
         verbaleAgressie: document.getElementById('verbaleAgressie').checked,
@@ -1292,7 +1363,7 @@
         </div>
       ` : '<div class="empty-stat"><strong>Nog geen opvolgingen</strong>Kom terug zodra er incidenten zijn opgeslagen.</div>';
 
-      const teamEntries = countMap(alleOpvolgingen.filter((o) => o.teamlid).map((o) => o.teamlid));
+      const teamEntries = countMap(alleOpvolgingen.flatMap((o) => teamledenVan(o)));
       document.getElementById('statOpvolgingTeam').innerHTML = renderStatPanel({
         pieData: teamEntries,
         tableHeaders: ['Teamlid', 'Aantal opvolgingen'],
@@ -1303,7 +1374,7 @@
         .sort((a, b) => (a.datum || '').localeCompare(b.datum || ''))
         .map((o) => [
           formatDate(o.datum),
-          o.teamlid || '—',
+          teamledenVan(o).join(', ') || '—',
           formatDate(o.incidentDatum)
         ]);
       document.getElementById('statOpvolgingLijst').innerHTML = renderTable(
@@ -1312,7 +1383,65 @@
       );
     }
 
-    function renderHome() {
+    function loadIncident(id) {
+      const incident = getOpgeslagenIncidenten().find((item) => item.id === id);
+      if (!incident) return;
+      document.getElementById('incidentForm').reset();
+      state.editingId = incident.id;
+      setDateFieldValue(document.getElementById('datumIncident'), incident.datumIncident || '');
+      document.getElementById('verbaleAgressie').checked = !!incident.verbaleAgressie;
+      document.getElementById('fysiekeAgressie').checked = !!incident.fysiekeAgressie;
+      document.getElementById('beschrijving').value = incident.beschrijving || '';
+      document.getElementById('andereData').value = incident.andereData || '';
+      (incident.leerlingen || []).forEach((naam) => state.geselecteerdeLeerlingen.add(naam));
+      (incident.personeel || []).forEach((naam) => state.geselecteerdePersoneel.add(naam));
+      renderTags(document.getElementById('leerlingTags'), state.geselecteerdeLeerlingen, 'leerling');
+      renderTags(document.getElementById('personeelTags'), state.geselecteerdePersoneel, 'personeel');
+      if (window.O2Files) {
+        window.O2Files.setZoneFiles(
+          document.getElementById('beschrijvingBijlagen'),
+          incident.beschrijvingBijlagen || []
+        );
+      }
+      clearOpvolgingen();
+      const opvolgingen = incident.opvolgingen || [];
+      if (opvolgingen.length) {
+        opvolgingen.forEach((opvolging) => {
+          addOpvolgingRow(
+            opvolging.datum || '',
+            teamledenVan(opvolging),
+            opvolging.notities || '',
+            opvolging.bijlagen || []
+          );
+        });
+      } else {
+        addOpvolgingRow();
+      }
+      document.getElementById('verslag').textContent = '';
+      syncSaveButton();
+      switchTab('formulier');
+    }
+
+    async function deleteIncident(id) {
+      const incident = getOpgeslagenIncidenten().find((item) => item.id === id);
+      const label = incident ? formatDate(incident.datumIncident) : 'dit incident';
+      if (!confirm(`Incident van ${label} wissen? Dit verdwijnt ook voor collega’s.`)) return;
+      if (window.O2DB) await window.O2DB.remove(id);
+      else {
+        const rest = getOpgeslagenIncidenten().filter((item) => item.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+      }
+      if (state.editingId === id) document.getElementById('incidentForm').reset();
+      await renderHome();
+      if (document.getElementById('tabStatistieken') && !document.getElementById('tabStatistieken').hidden) {
+        renderStatistieken();
+      }
+    }
+
+    async function renderHome() {
+      if (window.O2DB && window.O2DB.isRemote()) {
+        try { await window.O2DB.reload(); } catch (err) { console.error(err); }
+      }
       const incidenten = getOpgeslagenIncidenten();
       const set = (id, val) => {
         const el = document.getElementById(id);
@@ -1336,9 +1465,8 @@
       const hint = document.getElementById('homeRecentHint');
       if (!list) return;
       const recent = [...incidenten]
-        .sort((a, b) => String(b.opgeslagenOp || '').localeCompare(String(a.opgeslagenOp || '')))
-        .slice(0, 8);
-      if (hint) hint.textContent = recent.length ? `Laatste ${recent.length}` : 'Nog leeg';
+        .sort((a, b) => String(b.opgeslagenOp || b.datumIncident || '').localeCompare(String(a.opgeslagenOp || a.datumIncident || '')));
+      if (hint) hint.textContent = recent.length ? `${recent.length} incidenten` : 'Nog leeg';
       if (!recent.length) {
         list.innerHTML = '<div class="empty-stat"><strong>Nog geen incidenten</strong>Maak een nieuw verslag om hier geschiedenis te zien.</div>';
         return;
@@ -1360,6 +1488,10 @@
             <div class="recent-meta">
               <span>${escapeHtml(leerlingen)}${escapeHtml(more)}</span>
               <span>${opvolg} opvolging${opvolg === 1 ? '' : 'en'}</span>
+            </div>
+            <div class="recent-actions">
+              <button type="button" class="btn-secondary btn-small open-incident" data-id="${escapeHtml(inc.id)}">Verder werken</button>
+              <button type="button" class="btn-ghost btn-small delete-incident" data-id="${escapeHtml(inc.id)}">Wissen</button>
             </div>
           </article>`;
       }).join('');
@@ -1489,10 +1621,14 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
           incident = await window.O2Files.prepareIncidentAttachments(incident);
         }
         const result = await saveIncident(incident);
-        const where = result?.mode === 'supabase'
-          ? 'opgeslagen in Supabase (gedeeld).'
-          : 'opgeslagen lokaal in deze browser.';
-        status.textContent = 'Verslag gegenereerd en ' + where;
+        state.editingId = incident.id;
+        syncSaveButton();
+        const where = result?.updated
+          ? 'bijgewerkt en gedeeld.'
+          : result?.mode === 'supabase'
+            ? 'opgeslagen en gedeeld.'
+            : 'opgeslagen in deze browser.';
+        status.textContent = 'Verslag ' + where;
         status.className = 'status ok';
         renderHome();
       } catch (err) {
@@ -1530,9 +1666,21 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     });
 
     document.getElementById('opvolgingList').addEventListener('click', (e) => {
-      const btn = e.target.closest('.remove-opvolging');
-      if (!btn) return;
-      btn.closest('.opvolging-row').remove();
+      const row = e.target.closest('.opvolging-row');
+      if (!row) return;
+      if (e.target.closest('.remove-opvolging')) {
+        row.remove();
+        return;
+      }
+      if (e.target.closest('.add-opvolging-team')) {
+        [...row.querySelector('.opvolging-team-select').selectedOptions].forEach((opt) => row._team.add(opt.value));
+        renderTeamTags(row);
+        return;
+      }
+      if (e.target.closest('.clear-opvolging-team')) {
+        row._team.clear();
+        renderTeamTags(row);
+      }
     });
 
     document.getElementById('clearLeerlingen').addEventListener('click', () => {
@@ -1557,12 +1705,44 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
         state.geselecteerdePersoneel.delete(naam);
         renderTags(document.getElementById('personeelTags'), state.geselecteerdePersoneel, 'personeel');
       }
+      if (type === 'opvolging-team') {
+        const row = document.querySelector(`.opvolging-row[data-id="${btn.dataset.rowId}"]`);
+        if (!row || !row._team) return;
+        row._team.delete(naam);
+        renderTeamTags(row);
+      }
+    });
+
+    document.getElementById('homeRecentList').addEventListener('click', async (event) => {
+      const openBtn = event.target.closest('.open-incident');
+      const deleteBtn = event.target.closest('.delete-incident');
+      try {
+        if (openBtn) loadIncident(openBtn.dataset.id);
+        if (deleteBtn) await deleteIncident(deleteBtn.dataset.id);
+      } catch (err) {
+        alert(err.message || err);
+      }
+    });
+
+    document.getElementById('wisIncident').addEventListener('click', async () => {
+      if (!state.editingId) return;
+      try {
+        await deleteIncident(state.editingId);
+        switchTab('home');
+      } catch (err) {
+        alert(err.message || err);
+      }
     });
 
     document.getElementById('genereerVerslag').addEventListener('click', genereerVerslag);
 
     document.querySelectorAll('[data-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      btn.addEventListener('click', () => {
+        if (btn.hasAttribute('data-new-incident')) {
+          document.getElementById('incidentForm').reset();
+        }
+        switchTab(btn.dataset.tab);
+      });
     });
     document.getElementById('mobileNavToggle')?.addEventListener('click', () => {
       document.getElementById('sidebar')?.classList.toggle('open');
@@ -1667,12 +1847,15 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
       renderTags(document.getElementById('personeelTags'), state.geselecteerdePersoneel, 'personeel');
       clearOpvolgingen();
       addOpvolgingRow();
+      setDateFieldValue(document.getElementById('datumIncident'), '');
       if (window.O2Files) {
         window.O2Files.clearZone(document.getElementById('beschrijvingBijlagen'));
       }
       document.getElementById('verslag').textContent = '';
       document.getElementById('statusMsg').textContent = '';
       document.getElementById('statusMsg').className = 'status';
+      state.editingId = null;
+      syncSaveButton();
     });
 
     const boot = window.O2DB
