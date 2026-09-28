@@ -1095,6 +1095,74 @@ textarea.bulk-paste {
   margin-top: 0.35rem;
 }
 
+.recent-row.is-open {
+  border-color: var(--border-strong);
+}
+
+.recent-detail {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.recent-detail[hidden] { display: none; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 0 0 0.85rem;
+}
+
+.detail-grid dt {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.detail-grid dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.detail-block {
+  margin-top: 0.75rem;
+}
+
+.detail-block h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.detail-block p {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+.detail-block p span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+.detail-text {
+  white-space: pre-wrap;
+}
+
+.detail-files {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.detail-files a {
+  color: var(--accent-deep);
+}
+
 .mobile-nav-toggle {
   display: none;
   appearance: none;

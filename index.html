@@ -395,7 +395,8 @@
       geselecteerdeLeerlingen: new Set(),
       geselecteerdePersoneel: new Set(),
       opvolgingCounter: 0,
-      editingId: null
+      editingId: null,
+      openIncidenten: new Set()
     };
 
     function setDateFieldValue(input, iso) {
@@ -1479,8 +1480,9 @@
         const leerlingen = (inc.leerlingen || []).slice(0, 3).join(', ') || '—';
         const more = (inc.leerlingen || []).length > 3 ? ` +${(inc.leerlingen || []).length - 3}` : '';
         const opvolg = (inc.opvolgingen || []).length;
+        const open = state.openIncidenten.has(inc.id);
         return `
-          <article class="recent-row">
+          <article class="recent-row${open ? ' is-open' : ''}">
             <div class="recent-main">
               <strong>${escapeHtml(formatDate(inc.datumIncident))}</strong>
               <span class="recent-type">${escapeHtml(typeLabel)}</span>
@@ -1490,11 +1492,57 @@
               <span>${opvolg} opvolging${opvolg === 1 ? '' : 'en'}</span>
             </div>
             <div class="recent-actions">
+              <button type="button" class="btn-secondary btn-small view-incident" data-id="${escapeHtml(inc.id)}" aria-expanded="${open ? 'true' : 'false'}">${open ? 'Inklappen' : 'Bekijken'}</button>
               <button type="button" class="btn-secondary btn-small open-incident" data-id="${escapeHtml(inc.id)}">Verder werken</button>
               <button type="button" class="btn-ghost btn-small delete-incident" data-id="${escapeHtml(inc.id)}">Wissen</button>
             </div>
+            <div class="recent-detail" ${open ? '' : 'hidden'}>
+              ${incidentDetailHtml(inc)}
+            </div>
           </article>`;
       }).join('');
+    }
+
+    function filesHtml(files) {
+      if (!files || !files.length) return '';
+      return `<ul class="detail-files">${files.map((file) => {
+        const href = file.url || file.dataUrl || '';
+        const name = escapeHtml(file.name || 'bestand');
+        return href
+          ? `<li><a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${name}</a></li>`
+          : `<li>${name}</li>`;
+      }).join('')}</ul>`;
+    }
+
+    function incidentDetailHtml(inc) {
+      const types = [];
+      if (inc.verbaleAgressie) types.push('Verbale agressie');
+      if (inc.fysiekeAgressie) types.push('Fysieke agressie');
+      const opvolgingen = (inc.opvolgingen || []).map((opvolging, index) => `
+        <section class="detail-block">
+          <h4>Opvolging ${index + 1} · ${escapeHtml(formatDate(opvolging.datum))}</h4>
+          <p><span>Teamleden</span> ${escapeHtml(teamledenVan(opvolging).join(', ') || '—')}</p>
+          <p class="detail-text">${escapeHtml(opvolging.notities || '—')}</p>
+          ${filesHtml(opvolging.bijlagen)}
+        </section>
+      `).join('');
+      return `
+        <dl class="detail-grid">
+          <div><dt>Type</dt><dd>${escapeHtml(types.join(' en/of ') || 'Niet gespecificeerd')}</dd></div>
+          <div><dt>Leerlingen</dt><dd>${escapeHtml((inc.leerlingen || []).join(', ') || '—')}</dd></div>
+          <div><dt>Personeel</dt><dd>${escapeHtml((inc.personeel || []).join(', ') || '—')}</dd></div>
+        </dl>
+        <section class="detail-block">
+          <h4>Beschrijving</h4>
+          <p class="detail-text">${escapeHtml(inc.beschrijving || '—')}</p>
+          ${filesHtml(inc.beschrijvingBijlagen)}
+        </section>
+        ${opvolgingen || '<p class="hint">Geen opvolgingen</p>'}
+        <section class="detail-block">
+          <h4>Andere data / opmerkingen</h4>
+          <p class="detail-text">${escapeHtml(inc.andereData || '—')}</p>
+        </section>
+      `;
     }
 
     function isO2Admin() {
@@ -1714,9 +1762,21 @@ Verslag gegenereerd op ${new Date().toLocaleString('nl-BE')}`;
     });
 
     document.getElementById('homeRecentList').addEventListener('click', async (event) => {
+      const viewBtn = event.target.closest('.view-incident');
       const openBtn = event.target.closest('.open-incident');
       const deleteBtn = event.target.closest('.delete-incident');
       try {
+        if (viewBtn) {
+          const article = viewBtn.closest('.recent-row');
+          const panel = article.querySelector('.recent-detail');
+          const willOpen = panel.hasAttribute('hidden');
+          panel.toggleAttribute('hidden', !willOpen);
+          article.classList.toggle('is-open', willOpen);
+          viewBtn.textContent = willOpen ? 'Inklappen' : 'Bekijken';
+          viewBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+          if (willOpen) state.openIncidenten.add(viewBtn.dataset.id);
+          else state.openIncidenten.delete(viewBtn.dataset.id);
+        }
         if (openBtn) loadIncident(openBtn.dataset.id);
         if (deleteBtn) await deleteIncident(deleteBtn.dataset.id);
       } catch (err) {
